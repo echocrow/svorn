@@ -1,0 +1,26 @@
+root: true
+parser: '@typescript-eslint/parser'
+parserOptions:
+  sourceType: module
+  ecmaVersion: 2019
+
+env:
+  browser: true
+  es2017: true
+  node: true
+
+extends:
+  - eslint:recommended
+  - plugin:@typescript-eslint/recommended
+  - prettier
+
+plugins:
+  - svelte3
+  - '@typescript-eslint'
+
+settings:
+  svelte3/typescript: true
+
+overrides:
+  - files: ['*.svelte']
+    processor: svelte3/svelte3
