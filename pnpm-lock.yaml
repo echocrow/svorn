@@ -2,21 +2,21 @@ lockfileVersion: 5.3
 
 specifiers:
   '@sveltejs/kit': next
-  '@typescript-eslint/eslint-plugin': ^4.31.1
-  '@typescript-eslint/parser': ^4.31.1
+  '@typescript-eslint/eslint-plugin': ^4.33.0
+  '@typescript-eslint/parser': ^4.33.0
   eslint: ^7.32.0
   eslint-config-prettier: ^8.3.0
   eslint-plugin-svelte3: ^3.2.1
   prettier: ^2.4.1
   prettier-plugin-svelte: ^2.4.0
-  svelte: ^3.42.6
-  svelte-check: ^2.2.6
-  svelte-preprocess: ^4.9.4
+  svelte: ^3.44.1
+  svelte-check: ^2.2.8
+  svelte-preprocess: ^4.9.8
   tslib: ^2.3.1
-  typescript: ^4.4.3
+  typescript: ^4.4.4
 
 devDependencies:
-  '@sveltejs/kit': 1.0.0-next.195_svelte@3.44.1
+  '@sveltejs/kit': 1.0.0-next.196_svelte@3.44.1
   '@typescript-eslint/eslint-plugin': 4.33.0_cc617358c89d3f38c52462f6d809db4c
   '@typescript-eslint/parser': 4.33.0_eslint@7.32.0+typescript@4.4.4
   eslint: 7.32.0
@@ -113,8 +113,8 @@ packages:
       picomatch: 2.3.0
     dev: true
 
-  /@sveltejs/kit/1.0.0-next.195_svelte@3.44.1:
-    resolution: {integrity: sha512-R2X4FgzXQhp63XOik6S1Flw91S2CEA7sTxdsnNFrq3O+bIN7pQhJhkm6zgH68MZANdDcq8oIiSRkxT4M3t1+jQ==}
+  /@sveltejs/kit/1.0.0-next.196_svelte@3.44.1:
+    resolution: {integrity: sha512-z7sA/2/3Il5biibjPXCYXJC11TyFhgCvMaJvvbtMnu2l3EmOmJBMS+r2djGptzfFsugSVNwGQFn8+ldWQWq3jA==}
     engines: {node: '>=14.13'}
     hasBin: true
     peerDependencies:
@@ -303,8 +303,8 @@ packages:
       uri-js: 4.4.1
     dev: true
 
-  /ajv/8.7.1:
-    resolution: {integrity: sha512-gPpOObTO1QjbnN1sVMjJcp1TF9nggMfO4MBR5uQl6ZVTOaEPq5i4oq/6R9q2alMMPB3eg53wFv1RuJBLuxf3Hw==}
+  /ajv/8.8.0:
+    resolution: {integrity: sha512-L+cJ/+pkdICMueKR6wIx3VP2fjIx3yAhuvadUv/osv9yFD7OVZy442xFF+Oeu3ZvmhBGQzoF6mTSt+LUWBmGQg==}
     dependencies:
       fast-deep-equal: 3.1.3
       json-schema-traverse: 1.0.0
@@ -1289,8 +1289,8 @@ packages:
       glob: 7.2.0
     dev: true
 
-  /rollup/2.59.0:
-    resolution: {integrity: sha512-l7s90JQhCQ6JyZjKgo7Lq1dKh2RxatOM+Jr6a9F7WbS9WgKbocyUSeLmZl8evAse7y96Ae98L2k1cBOwWD8nHw==}
+  /rollup/2.60.0:
+    resolution: {integrity: sha512-cHdv9GWd58v58rdseC8e8XIaPUo8a9cgZpnCMMDGZFDZKEODOiPPEQFXLriWr/TjXzhPPmG5bkAztPsOARIcGQ==}
     engines: {node: '>=10.0.0'}
     hasBin: true
     optionalDependencies:
@@ -1520,7 +1520,7 @@ packages:
     resolution: {integrity: sha512-5DkIxeA7XERBqMwJq0aHZOdMadBx4e6eDoFRuyT5VR82J0Ycg2DwM6GfA/EQAhJ+toRTaS1lIdSQCqgrmhPnlw==}
     engines: {node: '>=10.0.0'}
     dependencies:
-      ajv: 8.7.1
+      ajv: 8.8.0
       lodash.truncate: 4.4.2
       slice-ansi: 4.0.0
       string-width: 4.2.3
@@ -1603,7 +1603,7 @@ packages:
       esbuild: 0.13.13
       postcss: 8.3.11
       resolve: 1.20.0
-      rollup: 2.59.0
+      rollup: 2.60.0
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
