@@ -9,6 +9,7 @@ import {
   Subscription,
   switchMap,
 } from 'rxjs'
+import type { TeardownLogic } from 'rxjs'
 
 const switchComplete =
   <T>() =>
@@ -44,6 +45,22 @@ const switchComplete =
 
       return reset
     })
+
+class WriteObservable<T> extends Observable<T> {
+  constructor(
+    private _next: (value: T) => void,
+    subscribe?: (
+      this: Observable<T>,
+      subscriber: Subscriber<T>,
+    ) => TeardownLogic,
+  ) {
+    super(subscribe)
+  }
+
+  next(value: T) {
+    this._next(value)
+  }
+}
 
 interface AtomFamilyOptions<T> {
   default: T
@@ -84,13 +101,18 @@ const atomFamily = <T>({ default: def, initial }: AtomFamilyOptions<T>) => {
     return set(key, value)
   }
 
-  const get = (key: string): Observable<T> =>
-    store.pipe(
+  const get = (key: string) => {
+    const observable = store.pipe(
       map((v) => v[key]),
       filter(Boolean),
       switchComplete(),
       startWith(def),
     )
+    const next = (v: T) => set(key, v)
+    return new WriteObservable(next, (subscriber: Subscriber<T>) =>
+      observable.subscribe(subscriber),
+    )
+  }
 
   if (initial) for (const [k, v] of Object.entries(initial)) set(k, v)
 
