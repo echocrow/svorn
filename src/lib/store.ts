@@ -4,7 +4,6 @@ import {
   filter,
   map,
   Observable,
-  startWith,
   Subscriber,
   Subscription,
   switchMap,
@@ -44,6 +43,23 @@ const switchComplete =
       restart()
 
       return reset
+    })
+
+const defaultWith =
+  <T>(def: T) =>
+  (source: Observable<T>) =>
+    new Observable((subscriber: Subscriber<T>) => {
+      let fired = false
+      const subscription = source.subscribe({
+        next: (v) => {
+          fired = true
+          subscriber.next(v)
+        },
+        error: (e) => subscriber.error(e),
+        complete: () => subscriber.complete(),
+      })
+      if (!fired) subscriber.next(def)
+      return subscription
     })
 
 class WriteObservable<T> extends Observable<T> {
@@ -106,7 +122,7 @@ const atomFamily = <T>({ default: def, initial }: AtomFamilyOptions<T>) => {
       map((v) => v[key]),
       filter(Boolean),
       switchComplete(),
-      startWith(def),
+      defaultWith(def),
     )
     const next = (v: T) => set(key, v)
     return new WriteObservable(next, (subscriber: Subscriber<T>) =>
