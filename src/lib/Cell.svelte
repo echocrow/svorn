@@ -18,7 +18,9 @@
   if (row === 0 && col === 0) {
     onMount(() => {
       const timer = interval(1000)
-      const sub = timer.subscribe(() => sheet.update(name, inc))
+      const sub = timer.subscribe(() =>
+        sheet.set(name, inc(sheet.getValue(name))),
+      )
       return () => sub.unsubscribe()
     })
   }

@@ -8,10 +8,10 @@ import {
   Subscription,
   switchMap,
 } from 'rxjs'
-import type { TeardownLogic } from 'rxjs'
+import type { Observer, OperatorFunction, Subscribable } from 'rxjs'
 
 const switchComplete =
-  <T>() =>
+  <T>(): OperatorFunction<Observable<T>, T> =>
   (outer: Observable<Observable<T>>) =>
     new Observable((subscriber: Subscriber<T>) => {
       let outerSub: Subscription | void
@@ -62,82 +62,108 @@ const defaultWith =
       return subscription
     })
 
-class WriteObservable<T> extends Observable<T> {
+class BehaviorMember<T> extends Observable<T> {
+  #family: BehaviorFamily<T>
+  #key: string
+
   constructor(
-    private _next: (value: T) => void,
-    subscribe?: (
-      this: Observable<T>,
-      subscriber: Subscriber<T>,
-    ) => TeardownLogic,
+    family: BehaviorFamily<T>,
+    key: string,
+    def: T,
+    store: Observable<BehaviorRecord<T>>,
   ) {
-    super(subscribe)
+    super((subscriber) =>
+      store
+        .pipe(
+          map((v) => v[key]),
+          filter(Boolean),
+          switchComplete(),
+          defaultWith(def),
+        )
+        .subscribe(subscriber),
+    )
+    this.#family = family
+    this.#key = key
+  }
+
+  getValue(): T {
+    return this.#family.getValue(this.#key)
   }
 
   next(value: T) {
-    this._next(value)
+    this.#family.set(this.#key, value)
+  }
+
+  reset() {
+    this.#family.reset(this.#key)
   }
 }
 
-interface AtomFamilyOptions<T> {
-  default: T
-  initial?: Record<string, T>
-}
+type BehaviorRecord<T> = Record<string, BehaviorSubject<T>>
 
-const atomFamily = <T>({ default: def, initial }: AtomFamilyOptions<T>) => {
-  const store = new BehaviorSubject<Record<string, BehaviorSubject<T>>>({})
+type BehaviorFamilyRecord<T> = Record<string, T>
 
-  const snap = store.pipe(switchMap((s) => combineLatest(s)))
+class BehaviorFamily<T> implements Subscribable<BehaviorFamilyRecord<T>> {
+  #store = new BehaviorSubject<BehaviorRecord<T>>({})
+  #snap = this.#store.pipe(switchMap((s) => combineLatest(s)))
+  #default: T
 
-  const del = (key: string) => {
-    const data = store.getValue()
+  constructor(defaultValue: T, initial?: BehaviorFamilyRecord<T>) {
+    this.#default = defaultValue
+    if (initial) {
+      for (const [k, v] of Object.entries(initial)) this.set(k, v)
+    }
+  }
+
+  reset(key: string): void {
+    const data = this.#store.getValue()
     const sub = data[key]
     if (sub) {
-      sub.next(def)
+      sub.next(this.#default)
       delete data[key]
-      store.next(data)
+      this.#store.next(data)
       sub.complete()
     }
   }
 
-  const set = (key: string, value: T) => {
-    const data = store.getValue()
-    if (value === def) return del(key)
+  next(key: string, value: T): void {
+    const data = this.#store.getValue()
+    if (value === this.#default) return this.reset(key)
 
     const sub = data[key]
     if (sub) {
       sub.next(value)
     } else {
       data[key] = new BehaviorSubject(value)
-      store.next(data)
+      this.#store.next(data)
     }
   }
-  const update = (key: string, getValue: (curr: T) => T) => {
-    const data = store.getValue()
-    const value = getValue(data[key]?.getValue() ?? def)
-    return set(key, value)
+
+  set(key: string, value: T): void {
+    return this.next(key, value)
   }
 
-  const get = (key: string) => {
-    const observable = store.pipe(
-      map((v) => v[key]),
-      filter(Boolean),
-      switchComplete(),
-      defaultWith(def),
-    )
-    const next = (v: T) => set(key, v)
-    return new WriteObservable(next, (subscriber: Subscriber<T>) =>
-      observable.subscribe(subscriber),
-    )
+  get(key: string): BehaviorMember<T> {
+    return new BehaviorMember(this, key, this.#default, this.#store)
   }
 
-  if (initial) for (const [k, v] of Object.entries(initial)) set(k, v)
+  getValue(key: string): T {
+    return this.#store.getValue()[key]?.getValue() ?? this.#default
+  }
 
-  return { get, set, del, update, store, snap }
+  subscribe(
+    observerOrNext?:
+      | Partial<Observer<BehaviorFamilyRecord<T>>>
+      | ((value: BehaviorFamilyRecord<T>) => void)
+      | null,
+  ): Subscription {
+    // TypeScript is struggling.
+    return typeof observerOrNext === 'function'
+      ? this.#snap.subscribe(observerOrNext)
+      : this.#snap.subscribe(observerOrNext ?? undefined)
+  }
 }
 
-export const sheet = atomFamily<string | number>({
-  default: '',
-  initial: {
-    B2: '!',
-  },
+export const sheet = new BehaviorFamily('' as string | number, {
+  B2: '!',
 })
