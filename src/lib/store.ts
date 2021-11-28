@@ -62,7 +62,14 @@ const defaultWith =
       return subscription
     })
 
-class BehaviorMember<T> extends Observable<T> {
+interface BehaviorGettable<T> extends Subscribable<T> {
+  getValue(): T
+}
+interface BehaviorSettable<T> extends BehaviorGettable<T> {
+  next(value: T): void
+}
+
+class BehaviorMember<T> extends Observable<T> implements BehaviorSettable<T> {
   #family: BehaviorFamily<T>
   #key: string
 
@@ -103,9 +110,39 @@ type BehaviorRecord<T> = Record<string, BehaviorSubject<T>>
 
 type BehaviorFamilyRecord<T> = Record<string, T>
 
-class BehaviorFamily<T> implements Subscribable<BehaviorFamilyRecord<T>> {
+class BehaviorFamilySnap<T>
+  implements BehaviorGettable<BehaviorFamilyRecord<T>>
+{
+  #store: BehaviorSubject<BehaviorRecord<T>>
+  #snap: Observable<BehaviorFamilyRecord<T>>
+
+  constructor(store: BehaviorSubject<BehaviorRecord<T>>) {
+    this.#store = store
+    this.#snap = this.#store.pipe(switchMap((s) => combineLatest(s)))
+  }
+
+  getValue(): BehaviorFamilyRecord<T> {
+    return Object.entries(this.#store.getValue()).reduce((values, [k, v]) => {
+      values[k] = v.getValue()
+      return values
+    }, {} as BehaviorFamilyRecord<T>)
+  }
+
+  subscribe(
+    observerOrNext?:
+      | Partial<Observer<BehaviorFamilyRecord<T>>>
+      | ((value: BehaviorFamilyRecord<T>) => void)
+      | null,
+  ): Subscription {
+    // TypeScript is struggling.
+    return typeof observerOrNext === 'function'
+      ? this.#snap.subscribe(observerOrNext)
+      : this.#snap.subscribe(observerOrNext ?? undefined)
+  }
+}
+
+class BehaviorFamily<T> {
   #store = new BehaviorSubject<BehaviorRecord<T>>({})
-  #snap = this.#store.pipe(switchMap((s) => combineLatest(s)))
   #default: T
 
   constructor(defaultValue: T, initial?: BehaviorFamilyRecord<T>) {
@@ -151,16 +188,8 @@ class BehaviorFamily<T> implements Subscribable<BehaviorFamilyRecord<T>> {
     return this.#store.getValue()[key]?.getValue() ?? this.#default
   }
 
-  subscribe(
-    observerOrNext?:
-      | Partial<Observer<BehaviorFamilyRecord<T>>>
-      | ((value: BehaviorFamilyRecord<T>) => void)
-      | null,
-  ): Subscription {
-    // TypeScript is struggling.
-    return typeof observerOrNext === 'function'
-      ? this.#snap.subscribe(observerOrNext)
-      : this.#snap.subscribe(observerOrNext ?? undefined)
+  snap(): BehaviorFamilySnap<T> {
+    return new BehaviorFamilySnap(this.#store)
   }
 }
 
