@@ -1,14 +1,16 @@
+import type { Observer, OperatorFunction, Subscribable } from 'rxjs'
 import {
   BehaviorSubject,
   combineLatest,
   filter,
+  finalize,
   map,
   Observable,
+  shareReplay,
   Subscriber,
   Subscription,
   switchMap,
 } from 'rxjs'
-import type { Observer, OperatorFunction, Subscribable } from 'rxjs'
 
 const switchComplete =
   <T>(): OperatorFunction<Observable<T>, T> =>
@@ -73,22 +75,8 @@ class BehaviorMember<T> extends Observable<T> implements BehaviorSettable<T> {
   #family: BehaviorFamily<T>
   #key: string
 
-  constructor(
-    family: BehaviorFamily<T>,
-    key: string,
-    def: T,
-    store: Observable<BehaviorRecord<T>>,
-  ) {
-    super((subscriber) =>
-      store
-        .pipe(
-          map((v) => v[key]),
-          filter(Boolean),
-          switchComplete(),
-          defaultWith(def),
-        )
-        .subscribe(subscriber),
-    )
+  constructor(family: BehaviorFamily<T>, key: string, source: Observable<T>) {
+    super((subscriber) => source.subscribe(subscriber))
     this.#family = family
     this.#key = key
   }
@@ -98,7 +86,7 @@ class BehaviorMember<T> extends Observable<T> implements BehaviorSettable<T> {
   }
 
   next(value: T) {
-    this.#family.set(this.#key, value)
+    this.#family.next(this.#key, value)
   }
 
   reset() {
@@ -144,6 +132,7 @@ class BehaviorFamilySnap<T>
 class BehaviorFamily<T> {
   #store = new BehaviorSubject<BehaviorRecord<T>>({})
   #default: T
+  #membersCache: Record<string, BehaviorMember<T>> = {}
 
   constructor(defaultValue: T, initial?: BehaviorFamilyRecord<T>) {
     this.#default = defaultValue
@@ -181,7 +170,20 @@ class BehaviorFamily<T> {
   }
 
   get(key: string): BehaviorMember<T> {
-    return new BehaviorMember(this, key, this.#default, this.#store)
+    const cached = this.#membersCache[key]
+    if (cached) return cached
+
+    const source = this.#store.pipe(
+      map((v) => v[key]),
+      filter(Boolean),
+      switchComplete(),
+      defaultWith(this.#default),
+      finalize(() => delete this.#membersCache[key]),
+      shareReplay(1),
+    )
+    const member = new BehaviorMember(this, key, source)
+    this.#membersCache[key] = member
+    return member
   }
 
   getValue(key: string): T {
