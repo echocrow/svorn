@@ -1,4 +1,4 @@
-import type { Observer, OperatorFunction, Subscribable } from 'rxjs'
+import type { OperatorFunction } from 'rxjs'
 import {
   BehaviorSubject,
   combineLatest,
@@ -64,7 +64,7 @@ const defaultWith =
       return subscription
     })
 
-interface BehaviorGettable<T> extends Subscribable<T> {
+interface BehaviorGettable<T> extends Observable<T> {
   getValue(): T
 }
 interface BehaviorSettable<T> extends BehaviorGettable<T> {
@@ -99,14 +99,16 @@ type BehaviorRecord<T> = Record<string, BehaviorSubject<T>>
 type BehaviorFamilyRecord<T> = Record<string, T>
 
 class BehaviorFamilySnap<T>
+  extends Observable<BehaviorFamilyRecord<T>>
   implements BehaviorGettable<BehaviorFamilyRecord<T>>
 {
   #store: BehaviorSubject<BehaviorRecord<T>>
-  #snap: Observable<BehaviorFamilyRecord<T>>
 
   constructor(store: BehaviorSubject<BehaviorRecord<T>>) {
+    super((subscriber) =>
+      store.pipe(switchMap((s) => combineLatest(s))).subscribe(subscriber),
+    )
     this.#store = store
-    this.#snap = this.#store.pipe(switchMap((s) => combineLatest(s)))
   }
 
   getValue(): BehaviorFamilyRecord<T> {
@@ -114,18 +116,6 @@ class BehaviorFamilySnap<T>
       values[k] = v.getValue()
       return values
     }, {} as BehaviorFamilyRecord<T>)
-  }
-
-  subscribe(
-    observerOrNext?:
-      | Partial<Observer<BehaviorFamilyRecord<T>>>
-      | ((value: BehaviorFamilyRecord<T>) => void)
-      | null,
-  ): Subscription {
-    // TypeScript is struggling.
-    return typeof observerOrNext === 'function'
-      ? this.#snap.subscribe(observerOrNext)
-      : this.#snap.subscribe(observerOrNext ?? undefined)
   }
 }
 
