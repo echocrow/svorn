@@ -7,10 +7,12 @@ import {
   Observable,
   of,
   shareReplay,
+  Subscriber,
+  Subscription,
   switchMap,
 } from 'rxjs'
 import { nameCell } from './cells'
-import { defaultWith, switchExhaustAll } from './rxjs'
+import { switchExhaustAll } from './rxjs'
 
 interface BehaviorGettable<T> extends Observable<T> {
   getValue(): T
@@ -19,18 +21,30 @@ interface BehaviorSettable<T> extends BehaviorGettable<T> {
   next(value: T): void
 }
 
-class BehaviorMember<T> extends Observable<T> implements BehaviorSettable<T> {
+class BehaviorMember<T>
+  extends BehaviorSubject<T>
+  implements BehaviorSettable<T>
+{
   #family: BehaviorFamily<T>
   #key: string
+  #source: Observable<T>
+  #refCount = 0
+  #susbcription: Subscription | null = null
 
-  constructor(family: BehaviorFamily<T>, key: string, source: Observable<T>) {
-    super((subscriber) => source.subscribe(subscriber))
+  constructor(
+    family: BehaviorFamily<T>,
+    key: string,
+    source: Observable<T>,
+    defaultValue: T,
+  ) {
+    super(defaultValue)
     this.#family = family
     this.#key = key
+    this.#source = source
   }
 
   getValue(): T {
-    return this.#family.getValue(this.#key)
+    return this.#refCount ? super.getValue() : this.#family.getValue(this.#key)
   }
 
   next(value: T) {
@@ -39,6 +53,27 @@ class BehaviorMember<T> extends Observable<T> implements BehaviorSettable<T> {
 
   reset() {
     this.#family.reset(this.#key)
+  }
+
+  /** @internal */
+  protected _subscribe(subscriber: Subscriber<T>): Subscription {
+    this.#refCount++
+    if (!this.#susbcription) {
+      this.#susbcription = this.#source.subscribe({
+        next: (v: T) => super.next(v),
+        error: (err: unknown) => super.error(err),
+        complete: () => super.complete(),
+      })
+    }
+    const subscription = super._subscribe(subscriber)
+    subscription.add(() => {
+      this.#refCount--
+      if (!this.#refCount) {
+        this.#susbcription?.unsubscribe()
+        this.#susbcription = null
+      }
+    })
+    return subscription
   }
 }
 
@@ -115,11 +150,10 @@ class BehaviorFamily<T> {
       map((v) => v[key]),
       filter(Boolean),
       switchExhaustAll(),
-      defaultWith(this.#default),
       finalize(() => delete this.#membersCache[key]),
       shareReplay(1),
     )
-    const member = new BehaviorMember(this, key, source)
+    const member = new BehaviorMember(this, key, source, this.#default)
     this.#membersCache[key] = member
     return member
   }
