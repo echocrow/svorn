@@ -1,32 +1,41 @@
 <script lang="ts">
-  import { joinNames, nameCol, nameRow } from './cells'
+  import { nameCol, nameRow } from './cells'
   import { range } from './utils'
-  import { sheet } from './store'
+  import { currCell, currCol, currRow } from './store'
   import { writableFromRx } from './svelte-rx'
 
   export let cols: number
   export let rows: number
 
-  let col = nameCol(1)
-  let row = nameRow(0)
-
   $: colOps = range(cols).map(nameCol)
   $: rowOps = range(rows).map(nameRow)
 
-  $: cell = joinNames(row, col)
-  $: cellVal = writableFromRx(sheet.get(cell))
+  const col = writableFromRx(currCol)
+  const row = writableFromRx(currRow)
+  $: cellVal = writableFromRx($currCell)
+
+  const getRandomInt = (max: number) => Math.floor(Math.random() * max)
+
+  const randoCell = () => {
+    const col = getRandomInt(cols)
+    const row = getRandomInt(rows)
+    currCol.next(col)
+    currRow.next(row)
+  }
 </script>
 
-<select name="col" bind:value={col}>
-  {#each colOps as colOp}
-    <option value={colOp}>{colOp}</option>
+<select name="col" bind:value={$col}>
+  {#each colOps as colOp, col}
+    <option value={col}>{colOp}</option>
   {/each}
 </select>
 
-<select name="row" bind:value={row}>
-  {#each rowOps as rowOp}
-    <option value={rowOp}>{rowOp}</option>
+<select name="row" bind:value={$row}>
+  {#each rowOps as rowOp, row}
+    <option value={row}>{rowOp}</option>
   {/each}
 </select>
+
+<button on:click={randoCell}>?</button>
 
 <input type="text" bind:value={$cellVal} />
