@@ -89,7 +89,12 @@ class BehaviorFamilySnap<T>
 
   constructor(store: BehaviorSubject<BehaviorRecord<T>>) {
     super((subscriber) =>
-      store.pipe(switchMap((s) => combineLatest(s))).subscribe(subscriber),
+      store
+        .pipe(
+          // combineLatest alone does not pipe when object is empty.
+          switchMap((s) => (objIsEmpty(s) ? of({}) : combineLatest(s))),
+        )
+        .subscribe(subscriber),
     )
     this.#store = store
   }
