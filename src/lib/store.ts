@@ -162,6 +162,11 @@ class BehaviorFamily<T> {
     return this.#store.getValue()[key]?.getValue() ?? this.#default
   }
 
+  complete(): void {
+    for (const k of Object.keys(this.#store)) this.reset(k)
+    this.#store.complete()
+  }
+
   snap(): BehaviorFamilySnap<T> {
     return new BehaviorFamilySnap(this.#store)
   }
