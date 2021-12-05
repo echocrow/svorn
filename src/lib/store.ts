@@ -1,4 +1,3 @@
-import type { OperatorFunction } from 'rxjs'
 import {
   BehaviorSubject,
   combineLatest,
@@ -7,62 +6,9 @@ import {
   map,
   Observable,
   shareReplay,
-  Subscriber,
-  Subscription,
   switchMap,
 } from 'rxjs'
-
-const switchComplete =
-  <T>(): OperatorFunction<Observable<T>, T> =>
-  (outer: Observable<Observable<T>>) =>
-    new Observable((subscriber: Subscriber<T>) => {
-      let outerSub: Subscription | void
-      let innerSub: Subscription | void
-
-      const reset = () => {
-        outerSub = outerSub?.unsubscribe()
-        innerSub = innerSub?.unsubscribe()
-      }
-
-      const restart = () => {
-        reset()
-        let outerFired = false
-        outerSub = outer.subscribe({
-          next: (inner) => {
-            outerFired = true
-            reset()
-            innerSub = inner.subscribe({
-              next: (v) => subscriber.next(v),
-              error: (e) => subscriber.error(e),
-              complete: restart,
-            })
-          },
-          error: (e) => subscriber.error(e),
-          complete: () => subscriber.complete(),
-        })
-        if (outerFired) outerSub = outerSub?.unsubscribe()
-      }
-      restart()
-
-      return reset
-    })
-
-const defaultWith =
-  <T>(def: T) =>
-  (source: Observable<T>) =>
-    new Observable((subscriber: Subscriber<T>) => {
-      let fired = false
-      const subscription = source.subscribe({
-        next: (v) => {
-          fired = true
-          subscriber.next(v)
-        },
-        error: (e) => subscriber.error(e),
-        complete: () => subscriber.complete(),
-      })
-      if (!fired) subscriber.next(def)
-      return subscription
-    })
+import { switchExhaustAll } from './rxjs'
 
 interface BehaviorGettable<T> extends Observable<T> {
   getValue(): T
@@ -166,7 +112,7 @@ class BehaviorFamily<T> {
     const source = this.#store.pipe(
       map((v) => v[key]),
       filter(Boolean),
-      switchComplete(),
+      switchExhaustAll(),
       defaultWith(this.#default),
       finalize(() => delete this.#membersCache[key]),
       shareReplay(1),
