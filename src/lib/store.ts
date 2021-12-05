@@ -1,3 +1,4 @@
+import type { Observer, Subscribable, Unsubscribable } from 'rxjs'
 import {
   BehaviorSubject,
   combineLatest,
@@ -7,29 +8,36 @@ import {
   Observable,
   of,
   shareReplay,
-  Subscriber,
   Subscription,
   switchMap,
 } from 'rxjs'
 import { nameCell } from './cells'
 import { switchExhaustAll } from './rxjs'
 
-interface BehaviorGettable<T> extends Observable<T> {
+const objIsEmpty = (
+  obj: Record<string | number | symbol, unknown>,
+): boolean => {
+  for (const _ in obj) return false
+  return true
+}
+
+interface BehaviorSubscribable<T> extends Subscribable<T> {
   getValue(): T
 }
-interface BehaviorSettable<T> extends BehaviorGettable<T> {
+interface BehaviorSubjectLike<T>
+  extends Observer<T>,
+    BehaviorSubscribable<T> {
   next(value: T): void
 }
 
-class BehaviorMember<T>
-  extends BehaviorSubject<T>
-  implements BehaviorSettable<T>
-{
+class BehaviorMember<T> implements BehaviorSubjectLike<T> {
   #family: BehaviorFamily<T>
   #key: string
   #source: Observable<T>
+
+  #subject: BehaviorSubject<T>
   #refCount = 0
-  #susbcription: Subscription | null = null
+  #subscription: Subscription | null = null
 
   constructor(
     family: BehaviorFamily<T>,
@@ -37,43 +45,48 @@ class BehaviorMember<T>
     source: Observable<T>,
     defaultValue: T,
   ) {
-    super(defaultValue)
     this.#family = family
     this.#key = key
     this.#source = source
+    this.#subject = new BehaviorSubject(defaultValue)
   }
 
   getValue(): T {
-    return this.#refCount ? super.getValue() : this.#family.getValue(this.#key)
+    return this.#subscription ? this.#subject.getValue() : this._calcValue()
   }
 
   next(value: T) {
     this.#family.next(this.#key, value)
   }
 
-  reset() {
+  error(err: unknown) {
+    this.#subject.error(err)
+  }
+
+  complete() {
     this.#family.reset(this.#key)
   }
 
-  /** @internal */
-  protected _subscribe(subscriber: Subscriber<T>): Subscription {
+  subscribe(observer: Partial<Observer<T>>): Unsubscribable {
     this.#refCount++
-    if (!this.#susbcription) {
-      this.#susbcription = this.#source.subscribe({
-        next: (v: T) => super.next(v),
-        error: (err: unknown) => super.error(err),
-        complete: () => super.complete(),
-      })
+    if (!this.#subscription) {
+      this.#subject.next(this._calcValue())
+      this.#subscription = this.#source.subscribe(this.#subject)
     }
-    const subscription = super._subscribe(subscriber)
+    const subscription = this.#subject.subscribe(observer)
     subscription.add(() => {
       this.#refCount--
       if (!this.#refCount) {
-        this.#susbcription?.unsubscribe()
-        this.#susbcription = null
+        this.#subscription?.unsubscribe()
+        this.#subscription = null
       }
     })
     return subscription
+  }
+
+  /** @internal */
+  protected _calcValue(): T {
+    return this.#family.getValue(this.#key)
   }
 }
 
@@ -83,7 +96,7 @@ type BehaviorFamilyRecord<T> = Record<string, T>
 
 class BehaviorFamilySnap<T>
   extends Observable<BehaviorFamilyRecord<T>>
-  implements BehaviorGettable<BehaviorFamilyRecord<T>>
+  implements BehaviorSubscribable<BehaviorFamilyRecord<T>>
 {
   #store: BehaviorSubject<BehaviorRecord<T>>
 
@@ -183,13 +196,15 @@ const checkSetsEqual = <T>(a: Set<T>, b: Set<T>): boolean => {
   return true
 }
 
-type BehaviorSelectorGetter<T> = (get: <B>(bg: BehaviorGettable<B>) => B) => T
+type BehaviorSelectorGetter<T> = (
+  get: <B>(bg: BehaviorSubscribable<B>) => B,
+) => T
 
 class BehaviorSelector<T>
   extends Observable<T>
-  implements BehaviorGettable<T>
+  implements BehaviorSubscribable<T>
 {
-  #deps = new BehaviorSubject(new Set<BehaviorGettable<unknown>>())
+  #deps = new BehaviorSubject(new Set<BehaviorSubscribable<unknown>>())
   #source: Observable<T> | undefined = undefined
   #get: BehaviorSelectorGetter<T>
 
@@ -213,8 +228,8 @@ class BehaviorSelector<T>
 
   getValue(): T {
     // todo: cache in behavior
-    const deps = new Set<BehaviorGettable<unknown>>()
-    const handleGet = <B>(source: BehaviorGettable<B>): B => {
+    const deps = new Set<BehaviorSubscribable<unknown>>()
+    const handleGet = <B>(source: BehaviorSubscribable<B>): B => {
       deps.add(source)
       return source.getValue()
     }
