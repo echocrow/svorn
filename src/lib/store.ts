@@ -1,16 +1,16 @@
-import type { Observer, Subscribable, Unsubscribable } from 'rxjs'
 import {
   BehaviorSubject,
+  Observable,
+  Subscription,
   combineLatest,
   filter,
   finalize,
   map,
-  Observable,
   of,
   shareReplay,
-  Subscription,
   switchMap,
 } from 'rxjs'
+import type { Observer, Subscribable, Unsubscribable } from 'rxjs'
 import { nameCell } from './cells'
 import { switchExhaustAll } from './rxjs'
 
