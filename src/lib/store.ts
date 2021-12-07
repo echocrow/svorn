@@ -1,15 +1,17 @@
 import {
   BehaviorSubject,
   Observable,
+  type Observer,
+  type Subscribable,
   Subscription,
   combineLatest,
   filter,
+  finalize,
   map,
   of,
   shareReplay,
   switchMap,
 } from 'rxjs'
-import type { Observer, Subscribable, Unsubscribable } from 'rxjs'
 import { nameCell } from './cells'
 import { switchExhaustAll } from './rxjs'
 
@@ -66,11 +68,11 @@ class BehaviorMember<T> implements BehaviorSubjectLike<T> {
     this.#family.reset(this.#key)
   }
 
-  subscribe(observer: Partial<Observer<T>>): Unsubscribable {
+  subscribe(observer: Partial<Observer<T>>): Subscription {
     this.#refCount++
     if (!this.#subscription) {
       this.#subject.next(this._calcValue())
-      this.#subscription = this.#source.subscribe(this.#subject)
+      this.#subscription = this.#family.subscribe(this.#key, this.#subject)
     }
     const subscription = this.#subject.subscribe(observer)
     subscription.add(() => {
@@ -122,12 +124,27 @@ class BehaviorFamilySnap<T>
 class BehaviorFamily<T> {
   #store = new BehaviorSubject<BehaviorRecord<T>>({})
   #default: T
+  #sourcesCache: Record<string, Observable<T>> = {}
 
   constructor(defaultValue: T, initial?: BehaviorFamilyRecord<T>) {
     this.#default = defaultValue
     if (initial) {
       for (const [k, v] of Object.entries(initial)) this.set(k, v)
     }
+  }
+
+  subscribe(key: string, observer: Partial<Observer<T>>): Subscription {
+    let src = this.#sourcesCache[key]
+    if (!src) {
+      src = this.#sourcesCache[key] = this.#store.pipe(
+        map((v) => v[key]),
+        filter(Boolean),
+        switchExhaustAll(),
+        finalize(() => delete this.#sourcesCache[key]),
+        shareReplay({ bufferSize: 1, refCount: true }),
+      )
+    }
+    return src.subscribe(observer)
   }
 
   reset(key: string): void {
