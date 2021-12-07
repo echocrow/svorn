@@ -4,7 +4,6 @@ import {
   Subscription,
   combineLatest,
   filter,
-  finalize,
   map,
   of,
   shareReplay,
@@ -123,7 +122,6 @@ class BehaviorFamilySnap<T>
 class BehaviorFamily<T> {
   #store = new BehaviorSubject<BehaviorRecord<T>>({})
   #default: T
-  #membersCache: Record<string, BehaviorMember<T>> = {}
 
   constructor(defaultValue: T, initial?: BehaviorFamilyRecord<T>) {
     this.#default = defaultValue
@@ -161,19 +159,12 @@ class BehaviorFamily<T> {
   }
 
   get(key: string): BehaviorMember<T> {
-    const cached = this.#membersCache[key]
-    if (cached) return cached
-
     const source = this.#store.pipe(
       map((v) => v[key]),
       filter(Boolean),
       switchExhaustAll(),
-      finalize(() => delete this.#membersCache[key]),
-      shareReplay(1),
     )
-    const member = new BehaviorMember(this, key, source, this.#default)
-    this.#membersCache[key] = member
-    return member
+    return new BehaviorMember(this, key, source, this.#default)
   }
 
   getValue(key: string): T {
