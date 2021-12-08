@@ -171,6 +171,13 @@ class BehaviorFamily<T> {
     }
   }
 
+  error(key: string, err: unknown): void {
+    const data = this.#store.getValue()
+    const sub = data[key]
+    if (sub) sub.error(err)
+    else this.#store.error(err)
+  }
+
   set(key: string, value: T): void {
     return this.next(key, value)
   }
