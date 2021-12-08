@@ -31,24 +31,14 @@ interface BehaviorSubjectLike<T>
   next(value: T): void
 }
 
-class BehaviorMember<T> implements BehaviorSubjectLike<T> {
-  #family: BehaviorFamily<T>
-  #key: string
-  #source: Observable<T>
-
+abstract class DerivedBehaviorSubscribable<T>
+  implements BehaviorSubscribable<T>
+{
   #subject: BehaviorSubject<T>
   #refCount = 0
   #subscription: Subscription | null = null
 
-  constructor(
-    family: BehaviorFamily<T>,
-    key: string,
-    source: Observable<T>,
-    defaultValue: T,
-  ) {
-    this.#family = family
-    this.#key = key
-    this.#source = source
+  constructor(defaultValue: T) {
     this.#subject = new BehaviorSubject(defaultValue)
   }
 
@@ -56,23 +46,11 @@ class BehaviorMember<T> implements BehaviorSubjectLike<T> {
     return this.#subscription ? this.#subject.getValue() : this._calcValue()
   }
 
-  next(value: T) {
-    this.#family.next(this.#key, value)
-  }
-
-  error(err: unknown) {
-    this.#subject.error(err)
-  }
-
-  complete() {
-    this.#family.reset(this.#key)
-  }
-
   subscribe(observer: Partial<Observer<T>>): Subscription {
     this.#refCount++
     if (!this.#subscription) {
       this.#subject.next(this._calcValue())
-      this.#subscription = this.#family.subscribe(this.#key, this.#subject)
+      this.#subscription = this._subscribe(this.#subject)
     }
     const subscription = this.#subject.subscribe(observer)
     subscription.add(() => {
@@ -86,8 +64,51 @@ class BehaviorMember<T> implements BehaviorSubjectLike<T> {
   }
 
   /** @internal */
+  protected abstract _calcValue(): T
+
+  /** @internal */
+  protected abstract _subscribe(subject: Partial<Observer<T>>): Subscription
+}
+
+abstract class DerivedBehaviorSubject<T>
+  extends DerivedBehaviorSubscribable<T>
+  implements BehaviorSubjectLike<T>
+{
+  abstract next(value: T): void
+
+  abstract error(err: unknown): void
+
+  abstract complete(): void
+}
+
+class BehaviorMember<T> extends DerivedBehaviorSubject<T> {
+  #family: BehaviorFamily<T>
+  #key: string
+
+  constructor(family: BehaviorFamily<T>, key: string, defaultValue: T) {
+    super(defaultValue)
+    this.#family = family
+    this.#key = key
+  }
+
+  next(value: T) {
+    this.#family.next(this.#key, value)
+  }
+
+  error(err: unknown) {
+    this.#family.error(this.#key, err)
+  }
+
+  complete() {
+    this.#family.reset(this.#key)
+  }
+
   protected _calcValue(): T {
     return this.#family.getValue(this.#key)
+  }
+
+  protected _subscribe(subject: Partial<Observer<T>>): Subscription {
+    return this.#family.subscribe(this.#key, subject)
   }
 }
 
@@ -95,29 +116,32 @@ type BehaviorRecord<T> = Record<string, BehaviorSubject<T>>
 
 type BehaviorFamilyRecord<T> = Record<string, T>
 
-class BehaviorFamilySnap<T>
-  extends Observable<BehaviorFamilyRecord<T>>
-  implements BehaviorSubscribable<BehaviorFamilyRecord<T>>
-{
+class BehaviorFamilySnap<T> extends DerivedBehaviorSubscribable<
+  BehaviorFamilyRecord<T>
+> {
   #store: BehaviorSubject<BehaviorRecord<T>>
 
   constructor(store: BehaviorSubject<BehaviorRecord<T>>) {
-    super((subscriber) =>
-      store
-        .pipe(
-          // combineLatest alone does not pipe when object is empty.
-          switchMap((s) => (objIsEmpty(s) ? of({}) : combineLatest(s))),
-        )
-        .subscribe(subscriber),
-    )
+    super({})
     this.#store = store
   }
 
-  getValue(): BehaviorFamilyRecord<T> {
+  protected _calcValue(): BehaviorFamilyRecord<T> {
     return Object.entries(this.#store.getValue()).reduce((values, [k, v]) => {
       values[k] = v.getValue()
       return values
     }, {} as BehaviorFamilyRecord<T>)
+  }
+
+  protected _subscribe(
+    subject: Partial<Observer<BehaviorFamilyRecord<T>>>,
+  ): Subscription {
+    return this.#store
+      .pipe(
+        // combineLatest alone does not pipe when object is empty.
+        switchMap((s) => (objIsEmpty(s) ? of({}) : combineLatest(s))),
+      )
+      .subscribe(subject)
   }
 }
 
@@ -183,12 +207,7 @@ class BehaviorFamily<T> {
   }
 
   get(key: string): BehaviorMember<T> {
-    const source = this.#store.pipe(
-      map((v) => v[key]),
-      filter(Boolean),
-      switchExhaustAll(),
-    )
-    return new BehaviorMember(this, key, source, this.#default)
+    return new BehaviorMember(this, key, this.#default)
   }
 
   getValue(key: string): T {
