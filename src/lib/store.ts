@@ -238,47 +238,42 @@ type BehaviorSelectorGetter<T> = (
   get: <B>(bg: BehaviorSubscribable<B>) => B,
 ) => T
 
-class BehaviorSelector<T>
-  extends Observable<T>
-  implements BehaviorSubscribable<T>
-{
+class BehaviorSelector<T> extends DerivedBehaviorSubscribable<T> {
   #deps = new BehaviorSubject(new Set<BehaviorSubscribable<unknown>>())
-  #source: Observable<T> | undefined = undefined
-  #get: BehaviorSelectorGetter<T>
+  #getter: BehaviorSelectorGetter<T>
+  #source: Observable<T> = this.#deps.pipe(
+    switchMap((v) => (v.size ? combineLatest([...v]) : of(undefined))),
+    map(() => this._calcValue()),
+    shareReplay(1),
+  )
 
-  constructor(get: BehaviorSelectorGetter<T>) {
-    super((subscriber) => this._source().subscribe(subscriber))
-    this.#get = get
+  constructor(getter: BehaviorSelectorGetter<T>) {
+    super(BehaviorSelector._calcValue(getter).value)
+    this.#getter = getter
   }
 
-  private _source() {
-    if (this.#source) return this.#source
-
-    // Collect dependencies for the first time.
-    this.getValue()
-
-    return (this.#source = this.#deps.pipe(
-      switchMap((v) => (v.size ? combineLatest([...v]) : of(undefined))),
-      map(() => this.getValue()),
-      shareReplay(1),
-    ))
+  protected _calcValue(): T {
+    const { value, deps } = BehaviorSelector._calcValue(this.#getter)
+    const oldDeps = this.#deps.getValue()
+    if (!checkSetsEqual(oldDeps, deps)) this.#deps.next(deps)
+    return value
   }
 
-  getValue(): T {
-    // todo: cache in behavior
+  protected _innerSubscribe(subject: Observer<T>): Subscription {
+    return this.#source.subscribe(subject)
+  }
+
+  static _calcValue<T>(getter: BehaviorSelectorGetter<T>): {
+    value: T
+    deps: Set<BehaviorSubscribable<unknown>>
+  } {
     const deps = new Set<BehaviorSubscribable<unknown>>()
-    const handleGet = <B>(source: BehaviorSubscribable<B>): B => {
+    const get = <B>(source: BehaviorSubscribable<B>): B => {
       deps.add(source)
       return source.getValue()
     }
-    const value = this.#get(handleGet)
-
-    const oldDeps = this.#deps.getValue()
-    if (!checkSetsEqual(oldDeps, deps)) {
-      this.#deps.next(deps)
-    }
-
-    return value
+    const value = getter(get)
+    return { value, deps }
   }
 }
 
