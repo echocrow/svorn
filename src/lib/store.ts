@@ -3,6 +3,7 @@ import {
   Observable,
   type Observer,
   type Subscribable,
+  Subscriber,
   Subscription,
   combineLatest,
   filter,
@@ -32,6 +33,7 @@ interface BehaviorSubjectLike<T>
 }
 
 abstract class DerivedBehaviorSubscribable<T>
+  extends Observable<T>
   implements BehaviorSubscribable<T>
 {
   #subject: BehaviorSubject<T>
@@ -39,6 +41,7 @@ abstract class DerivedBehaviorSubscribable<T>
   #subscription: Subscription | null = null
 
   constructor(defaultValue: T) {
+    super()
     this.#subject = new BehaviorSubject(defaultValue)
   }
 
@@ -46,13 +49,14 @@ abstract class DerivedBehaviorSubscribable<T>
     return this.#subscription ? this.#subject.getValue() : this._calcValue()
   }
 
-  subscribe(observer: Partial<Observer<T>>): Subscription {
+  /** @final */
+  protected _subscribe(subscriber: Subscriber<T>): Subscription {
     this.#refCount++
     if (!this.#subscription) {
       this.#subject.next(this._calcValue())
-      this.#subscription = this._subscribe(this.#subject)
+      this.#subscription = this._innerSubscribe(this.#subject)
     }
-    const subscription = this.#subject.subscribe(observer)
+    const subscription = this.#subject.subscribe(subscriber)
     subscription.add(() => {
       this.#refCount--
       if (!this.#refCount) {
@@ -67,7 +71,7 @@ abstract class DerivedBehaviorSubscribable<T>
   protected abstract _calcValue(): T
 
   /** @internal */
-  protected abstract _subscribe(subject: Partial<Observer<T>>): Subscription
+  protected abstract _innerSubscribe(subject: Observer<T>): Subscription
 }
 
 abstract class DerivedBehaviorSubject<T>
@@ -107,7 +111,7 @@ class BehaviorMember<T> extends DerivedBehaviorSubject<T> {
     return this.#family.getValue(this.#key)
   }
 
-  protected _subscribe(subject: Partial<Observer<T>>): Subscription {
+  protected _innerSubscribe(subject: Observer<T>): Subscription {
     return this.#family.subscribe(this.#key, subject)
   }
 }
@@ -133,8 +137,8 @@ class BehaviorFamilySnap<T> extends DerivedBehaviorSubscribable<
     }, {} as BehaviorFamilyRecord<T>)
   }
 
-  protected _subscribe(
-    subject: Partial<Observer<BehaviorFamilyRecord<T>>>,
+  protected _innerSubscribe(
+    subject: Observer<BehaviorFamilyRecord<T>>,
   ): Subscription {
     return this.#store
       .pipe(
