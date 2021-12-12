@@ -15,13 +15,7 @@ import {
 } from 'rxjs'
 import { nameCell } from './cells'
 import { switchExhaustAll } from './rxjs'
-
-const objIsEmpty = (
-  obj: Record<string | number | symbol, unknown>,
-): boolean => {
-  for (const _ in obj) return false
-  return true
-}
+import { areSetsEqual, isEmpty } from './utils'
 
 interface BehaviorSubscribable<T> extends Subscribable<T> {
   getValue(): T
@@ -143,7 +137,7 @@ class BehaviorFamilySnap<T> extends DerivedBehaviorSubscribable<
     return this.#store
       .pipe(
         // combineLatest alone does not pipe when object is empty.
-        switchMap((s) => (objIsEmpty(s) ? of({}) : combineLatest(s))),
+        switchMap((s) => (isEmpty(s) ? of({}) : combineLatest(s))),
       )
       .subscribe(subject)
   }
@@ -228,12 +222,6 @@ class BehaviorFamily<T> {
   }
 }
 
-const checkSetsEqual = <T>(a: Set<T>, b: Set<T>): boolean => {
-  if (a.size !== b.size) return false
-  for (const v of a) if (!b.has(v)) return false
-  return true
-}
-
 type BehaviorSelectorGetter<T> = (
   get: <B>(bg: BehaviorSubscribable<B>) => B,
 ) => T
@@ -255,7 +243,7 @@ class BehaviorSelector<T> extends DerivedBehaviorSubscribable<T> {
   protected _calcValue(): T {
     const { value, deps } = BehaviorSelector._calcValue(this.#getter)
     const oldDeps = this.#deps.getValue()
-    if (!checkSetsEqual(oldDeps, deps)) this.#deps.next(deps)
+    if (!areSetsEqual(oldDeps, deps)) this.#deps.next(deps)
     return value
   }
 
