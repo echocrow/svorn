@@ -33,3 +33,13 @@
 <ToggleWrapper>
   <CellWriter {cols} {rows} />
 </ToggleWrapper>
+
+<style>
+  table {
+    border-collapse: collapse;
+  }
+  td {
+    border: 1px solid currentColor;
+    padding: 0.25em;
+  }
+</style>
