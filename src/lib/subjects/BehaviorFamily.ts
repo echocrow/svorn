@@ -2,8 +2,6 @@ import {
   BehaviorSubject,
   Observable,
   type Observer,
-  type Subscribable,
-  Subscriber,
   Subscription,
   combineLatest,
   filter,
@@ -13,71 +11,10 @@ import {
   shareReplay,
   switchMap,
 } from 'rxjs'
-import { nameCell } from './cells'
-import { switchExhaustAll } from './rxjs'
-import { areSetsEqual, isEmpty } from './utils'
-
-interface BehaviorSubscribable<T> extends Subscribable<T> {
-  getValue(): T
-}
-interface BehaviorSubjectLike<T>
-  extends Observer<T>,
-    BehaviorSubscribable<T> {
-  next(value: T): void
-}
-
-abstract class DerivedBehaviorSubscribable<T>
-  extends Observable<T>
-  implements BehaviorSubscribable<T>
-{
-  #subject: BehaviorSubject<T>
-  #refCount = 0
-  #subscription: Subscription | null = null
-
-  constructor(defaultValue: T) {
-    super()
-    this.#subject = new BehaviorSubject(defaultValue)
-  }
-
-  getValue(): T {
-    return this.#subscription ? this.#subject.getValue() : this._calcValue()
-  }
-
-  /** @final */
-  protected _subscribe(subscriber: Subscriber<T>): Subscription {
-    this.#refCount++
-    if (!this.#subscription) {
-      this.#subject.next(this._calcValue())
-      this.#subscription = this._innerSubscribe(this.#subject)
-    }
-    const subscription = this.#subject.subscribe(subscriber)
-    subscription.add(() => {
-      this.#refCount--
-      if (!this.#refCount) {
-        this.#subscription?.unsubscribe()
-        this.#subscription = null
-      }
-    })
-    return subscription
-  }
-
-  /** @internal */
-  protected abstract _calcValue(): T
-
-  /** @internal */
-  protected abstract _innerSubscribe(subject: Observer<T>): Subscription
-}
-
-abstract class DerivedBehaviorSubject<T>
-  extends DerivedBehaviorSubscribable<T>
-  implements BehaviorSubjectLike<T>
-{
-  abstract next(value: T): void
-
-  abstract error(err: unknown): void
-
-  abstract complete(): void
-}
+import DerivedBehaviorSubject from './DerivedBehaviorSubject'
+import DerivedBehaviorSubscribable from './DerivedBehaviorSubscribable'
+import switchExhaustAll from '$lib/operators/switchExhaustAll'
+import { isEmpty } from '$lib/utils'
 
 class BehaviorMember<T> extends DerivedBehaviorSubject<T> {
   #family: BehaviorFamily<T>
@@ -222,60 +159,4 @@ class BehaviorFamily<T> {
   }
 }
 
-type BehaviorSelectorGetter<T> = (
-  get: <B>(bg: BehaviorSubscribable<B>) => B,
-) => T
-
-class BehaviorSelector<T> extends DerivedBehaviorSubscribable<T> {
-  #deps = new BehaviorSubject(new Set<BehaviorSubscribable<unknown>>())
-  #getter: BehaviorSelectorGetter<T>
-  #source: Observable<T> = this.#deps.pipe(
-    switchMap((v) => (v.size ? combineLatest([...v]) : of(undefined))),
-    map(() => this._calcValue()),
-    shareReplay(1),
-  )
-
-  constructor(getter: BehaviorSelectorGetter<T>) {
-    super(BehaviorSelector._calcValue(getter).value)
-    this.#getter = getter
-  }
-
-  protected _calcValue(): T {
-    const { value, deps } = BehaviorSelector._calcValue(this.#getter)
-    const oldDeps = this.#deps.getValue()
-    if (!areSetsEqual(oldDeps, deps)) this.#deps.next(deps)
-    return value
-  }
-
-  protected _innerSubscribe(subject: Observer<T>): Subscription {
-    return this.#source.subscribe(subject)
-  }
-
-  static _calcValue<T>(getter: BehaviorSelectorGetter<T>): {
-    value: T
-    deps: Set<BehaviorSubscribable<unknown>>
-  } {
-    const deps = new Set<BehaviorSubscribable<unknown>>()
-    const get = <B>(source: BehaviorSubscribable<B>): B => {
-      deps.add(source)
-      return source.getValue()
-    }
-    const value = getter(get)
-    return { value, deps }
-  }
-}
-
-export const sheet = new BehaviorFamily('' as string | number, {
-  B2: '!',
-})
-
-export const currCol = new BehaviorSubject(1)
-export const currRow = new BehaviorSubject(0)
-
-export const currCellName = new BehaviorSelector((get) =>
-  nameCell(get(currRow), get(currCol)),
-)
-
-export const currCell = new BehaviorSelector((get) =>
-  sheet.get(get(currCellName)),
-)
+export default BehaviorFamily

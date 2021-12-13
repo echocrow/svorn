@@ -1,8 +1,7 @@
 <script lang="ts">
-  import Sheet from '$lib/Sheet.svelte'
+  import Sheet from '$demo/components/Sheet.svelte'
 </script>
 
-<slot />
 <Sheet />
 
 <style>

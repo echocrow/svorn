@@ -1,10 +1,8 @@
 <script lang="ts">
   import { interval } from 'rxjs'
-
   import { onMount } from 'svelte'
-
-  import { nameCell } from './cells'
-  import { sheet } from './store'
+  import { nameCell } from '$demo/cells'
+  import { sheet } from '$demo/store'
 
   export let row: number
   export let col: number

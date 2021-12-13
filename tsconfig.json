@@ -24,7 +24,11 @@
     "checkJs": true,
     "paths": {
       "$lib": ["src/lib"],
-      "$lib/*": ["src/lib/*"]
+      "$lib/*": ["src/lib/*"],
+      "rxcoil": ["src/lib"],
+      "rxcoil/*": ["src/lib/*"],
+      "$demo": ["src/lib/demo"],
+      "$demo/*": ["src/lib/demo/*"]
     },
     /**
       Custom settings

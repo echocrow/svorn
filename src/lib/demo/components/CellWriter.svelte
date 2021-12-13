@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { nameCol, nameRow } from './cells'
-  import { range } from './utils'
-  import { currCell, currCol, currRow } from './store'
-  import { writableFromRx } from './svelte-rx'
+  import { nameCol, nameRow } from '$demo/cells'
+  import { currCell, currCol, currRow } from '$demo/store'
+  import { range } from '$demo/utils'
+  import { writableFromRx } from 'rxcoil/svelte'
 
   export let cols: number
   export let rows: number

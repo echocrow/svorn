@@ -24,6 +24,10 @@ const config = {
 
     target: '#svelte',
 
+    package: {
+      files: (id) => !id.startsWith('demo'),
+    },
+
     vite: {
       resolve: {
         alias: { ...tsAlias },

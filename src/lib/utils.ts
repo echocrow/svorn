@@ -1,6 +1,3 @@
-export const range = (length: number): number[] =>
-  Array.from({ length }, (_, i) => i)
-
 export const isEmpty = (
   obj: Record<string | number | symbol, unknown> | Iterable<unknown>,
 ): boolean => {

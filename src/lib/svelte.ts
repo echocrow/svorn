@@ -1,5 +1,5 @@
-import type { NextObserver, Subscribable } from 'rxjs'
 import { subscribe } from 'svelte/internal'
+import type { NextObserver, Subscribable } from 'rxjs'
 import type { Updater, Writable } from 'svelte/store'
 
 interface BehaviorSubjectLike<T> extends NextObserver<T>, Subscribable<T> {
