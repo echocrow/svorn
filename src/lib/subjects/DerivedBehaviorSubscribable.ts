@@ -28,7 +28,6 @@ abstract class DerivedBehaviorSubscribable<T>
   protected _subscribe(subscriber: Subscriber<T>): Subscription {
     this.#refCount++
     if (!this.#subscription) {
-      this.#subject.next(this._calcValue())
       this.#subscription = this._innerSubscribe(this.#subject)
     }
     const subscription = this.#subject.subscribe(subscriber)
