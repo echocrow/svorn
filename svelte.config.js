@@ -1,10 +1,20 @@
+import path from 'path'
+import { readFileSync } from 'fs'
+import JSON5 from 'json5'
 import adapter from '@sveltejs/adapter-auto'
 import preprocess from 'svelte-preprocess'
 
+// JSON imports are currently unavailable, so we need to JSON-parse directly.
+/** @type {import('./tsconfig.json')} */
+// eslint-disable-next-line import/no-named-as-default-member
+const tsconfig = JSON5.parse(readFileSync('./tsconfig.json', 'utf8'))
+const tsAlias = Object.entries(tsconfig.compilerOptions.paths)
+  .map(([from, [to]]) => [from, to])
+  .filter(([from, _]) => !from.endsWith('*'))
+  .reduce((alias, [from, to]) => ({ ...alias, [from]: path.resolve(to) }), {})
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-  // Consult https://github.com/sveltejs/svelte-preprocess
-  // for more information about preprocessors
   preprocess: preprocess(),
 
   compilerOptions: { immutable: true },
@@ -12,8 +22,13 @@ const config = {
   kit: {
     adapter: adapter(),
 
-    // hydrate the <div id="svelte"> element in src/app.html
     target: '#svelte',
+
+    vite: {
+      resolve: {
+        alias: { ...tsAlias },
+      },
+    },
   },
 }
 

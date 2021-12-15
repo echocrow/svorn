@@ -11,6 +11,7 @@ specifiers:
   eslint-plugin-import: ^2.25.3
   eslint-plugin-svelte3: ^3.2.1
   eslint-plugin-unused-imports: ^2.0.0
+  json5: ^2.2.0
   prettier: ^2.5.1
   prettier-plugin-svelte: ^2.5.1
   rxjs: ^7.4.0
@@ -31,6 +32,7 @@ devDependencies:
   eslint-plugin-import: 2.25.3_eslint@8.4.1
   eslint-plugin-svelte3: 3.2.1_eslint@8.4.1+svelte@3.44.2
   eslint-plugin-unused-imports: 2.0.0_31ad65a5a34b638b5d345ca6f0359d48
+  json5: 2.2.0
   prettier: 2.5.1
   prettier-plugin-svelte: 2.5.1_prettier@2.5.1+svelte@3.44.2
   rxjs: 7.4.0
@@ -1286,6 +1288,14 @@ packages:
 
   /json5/1.0.1:
     resolution: {integrity: sha512-aKS4WQjPenRxiQsC93MNfjx+nbF4PAdYzmd/1JIj8HYzqfbu86beTuNgXDzPknWk0n0uARlyewZo4s++ES36Ow==}
+    hasBin: true
+    dependencies:
+      minimist: 1.2.5
+    dev: true
+
+  /json5/2.2.0:
+    resolution: {integrity: sha512-f+8cldu7X/y7RAJurMEJmdoKXGB/X550w2Nr3tTbezL6RwEE/iMcm+tZnXeoZtKuOq6ft8+CqzEkrIgx1fPoQA==}
+    engines: {node: '>=6'}
     hasBin: true
     dependencies:
       minimist: 1.2.5
