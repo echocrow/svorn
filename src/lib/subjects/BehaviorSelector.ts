@@ -1,5 +1,6 @@
 import {
   BehaviorSubject,
+  type ObservedValueOf,
   type Observer,
   type Subscribable,
   Subscription,
@@ -19,14 +20,23 @@ import {
   zipSetArray,
 } from '$lib/utils'
 
-type BehaviorSelectorGetter<T> = (get: <B>(bg: Subscribable<B>) => B) => T
+type BehaviorSelectorGet = <S extends Subscribable<ObservedValueOf<S>>>(
+  source: S,
+) => ObservedValueOf<S>
+type BehaviorSelectorGetter<T> = (get: BehaviorSelectorGet) => T
+
+interface DepsMap extends Map<Subscribable<unknown>, unknown> {
+  get<S extends Subscribable<ObservedValueOf<S>>>(
+    dep: S,
+  ): ObservedValueOf<S> | undefined
+}
 
 class BehaviorSelector<T> extends DerivedSubscribable<T> {
   #deps = new BehaviorSubject(new Set<Subscribable<unknown>>())
   #getter: BehaviorSelectorGetter<T>
   #subscription: Subscription | void = undefined
   #isCalcing = false
-  #calcCache: [Map<Subscribable<unknown>, unknown>, T] | undefined
+  #calcCache: [DepsMap, T] | undefined
   #source = this.#deps.pipe(
     switchMap((deps) =>
       (deps.size ? combineLatest([...deps]) : of([] as unknown[])).pipe(
@@ -58,7 +68,7 @@ class BehaviorSelector<T> extends DerivedSubscribable<T> {
     deps: Set<Subscribable<unknown>>,
     values: unknown[],
   ): T {
-    const depValues = zipSetArray(deps, values)
+    const depValues = zipSetArray(deps, values) as DepsMap
     if (this.#calcCache) {
       const [prevDepValues, prevVal] = this.#calcCache
       if (areMapsEqual(prevDepValues, depValues)) return prevVal
@@ -70,22 +80,22 @@ class BehaviorSelector<T> extends DerivedSubscribable<T> {
   }
 
   /** @internal */
-  protected _calcValue(depValues: Map<Subscribable<unknown>, unknown>) {
+  protected _calcValue(depValues: DepsMap) {
     this.#isCalcing = true
 
     const getter = this.#getter
 
     const newDeps = new Set<Subscribable<unknown>>()
-    const newDepValues = new Map<Subscribable<unknown>, unknown>()
+    const newDepValues = new Map() as DepsMap
     const newSub = new Subscription()
 
-    const get = <B>(source: Subscribable<B>): B => {
+    const get: BehaviorSelectorGet = (source) => {
       if (newDepValues.has(source)) {
-        return newDepValues.get(source) as B
+        return newDepValues.get(source)! // eslint-disable-line @typescript-eslint/no-non-null-assertion
       }
       newDeps.add(source)
       const [v, s] = depValues.has(source)
-        ? [depValues.get(source) as B, source.subscribe({})]
+        ? [depValues.get(source)!, source.subscribe({})] // eslint-disable-line @typescript-eslint/no-non-null-assertion
         : requireInstantValue(source)
       newDepValues.set(source, v)
       newSub.add(s)

@@ -1,4 +1,4 @@
-import type { Subscribable, Unsubscribable } from 'rxjs'
+import type { ObservedValueOf, Subscribable, Unsubscribable } from 'rxjs'
 
 export const isEmpty = (
   obj: Record<string | number | symbol, unknown> | Iterable<unknown>,
@@ -34,10 +34,10 @@ export const zipSetArray = <K, V>(ks: Set<K>, vs: V[]): Map<K, V> => {
   return m
 }
 
-export const requireInstantValue = <T>(
-  source: Subscribable<T>,
-): readonly [T, Unsubscribable] => {
-  let value: [T] | undefined = undefined
+export const requireInstantValue = <S extends Subscribable<ObservedValueOf<S>>>(
+  source: S,
+): readonly [value: ObservedValueOf<S>, subscription: Unsubscribable] => {
+  let value: [ObservedValueOf<S>] | undefined = undefined
   const subscription = source.subscribe({
     next: (v) => (value = [v]),
   })
