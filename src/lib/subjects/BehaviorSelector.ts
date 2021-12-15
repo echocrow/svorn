@@ -1,143 +1,106 @@
 import {
   BehaviorSubject,
-  Observable,
   type Observer,
   type Subscribable,
   Subscription,
   combineLatest,
   filter,
+  finalize,
   map,
   of,
   shareReplay,
   switchMap,
 } from 'rxjs'
-import type { BehaviorSubscribable } from './types'
-import DerivedBehaviorSubscribable from './DerivedBehaviorSubscribable'
+import DerivedSubscribable from './DerivedSubscribable'
+import {
+  areMapsEqual,
+  areSetsEqual,
+  requireInstantValue,
+  zipSetArray,
+} from '$lib/utils'
 
-const requireInstantValue = <T>(source: Subscribable<T>): T => {
-  let value: [T] | undefined = undefined
-  const subscription = source.subscribe({
-    next: (v) => (value = [v]),
-  })
-  subscription.unsubscribe()
-  if (!value) throw new Error('todo: value not received')
-  return value[0]
-}
+type BehaviorSelectorGetter<T> = (get: <B>(bg: Subscribable<B>) => B) => T
 
-type BehaviorSelectorGetter<T> = (
-  get: <B>(bg: BehaviorSubscribable<B>) => B,
-) => T
-
-export const areMapsEqual = (
-  a: Map<unknown, unknown>,
-  b: Map<unknown, unknown>,
-): boolean => {
-  if (a.size !== b.size) return false
-  for (const [k, v] of a.entries())
-    if (!b.has(k) || b.get(k) !== v) return false
-  return true
-}
-
-// todo: Solve this without a stack. Perhaps remove need for BehaviorSubject?
-class Stack<T> {
-  #values: T[] = []
-
-  push(v: T): T {
-    this.#values.push(v)
-    return v
-  }
-  pop(): T {
-    if (!this.#values.length) throw new Error('todo: stack error')
-    /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
-    return this.#values.pop()!
-  }
-}
-
-interface BehaviorSelectorCalc<T> {
-  value: T
-  newDepValues: Map<BehaviorSubscribable<unknown>, unknown>
-  depsChanged: boolean
-}
-
-class BehaviorSelector<T> extends DerivedBehaviorSubscribable<T> {
-  private static cstack = new Stack<BehaviorSelectorCalc<unknown>>()
-
-  #prevDepValues = new Map<BehaviorSubscribable<unknown>, unknown>()
-  #depValues = new BehaviorSubject(this.#prevDepValues)
+class BehaviorSelector<T> extends DerivedSubscribable<T> {
+  #deps = new BehaviorSubject(new Set<Subscribable<unknown>>())
   #getter: BehaviorSelectorGetter<T>
-  #source: Observable<T> = this.#depValues.pipe(
-    switchMap((v) => (v.size ? combineLatest([...v.keys()]) : of([]))),
-    map((values) => {
-      const depValues = new Map<BehaviorSubscribable<unknown>, unknown>()
-      const deps = this.#depValues.getValue().keys()
-      let i = 0
-      for (const source of deps) {
-        /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
-        depValues.set(source, values[i]!)
-        i++
-      }
-      return depValues
-    }),
-    filter((depValues) => {
-      return !areMapsEqual(depValues, this.#prevDepValues)
-    }),
-    map((depValues) => {
-      this.#prevDepValues = depValues
-      return this._calcValue(depValues)
-    }),
-    shareReplay(1),
+  #subscription: Subscription | void = undefined
+  #isCalcing = false
+  #calcCache: [Map<Subscribable<unknown>, unknown>, T] | undefined
+  #source = this.#deps.pipe(
+    switchMap((deps) =>
+      (deps.size ? combineLatest([...deps]) : of([] as unknown[])).pipe(
+        map((values) => [deps, values] as const),
+      ),
+    ),
+    filter(() => !this.#isCalcing),
+    map(([deps, values]) => this._cachedCalcValue(deps, values)),
+    finalize(() => this._clearSubscription()),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 
   constructor(getter: BehaviorSelectorGetter<T>) {
-    super(
-      (
-        BehaviorSelector.cstack.push(
-          BehaviorSelector._calcValue(getter),
-        ) as BehaviorSelectorCalc<T>
-      ).value,
-    )
+    super()
     this.#getter = getter
-    const calc = BehaviorSelector.cstack.pop() as BehaviorSelectorCalc<T>
-    this.#prevDepValues = calc.newDepValues
-    this.#depValues.next(calc.newDepValues)
   }
 
-  protected _calcValue(
-    depValues = new Map<BehaviorSubscribable<unknown>, unknown>(),
+  protected _subscribe(subscriber: Observer<T>): Subscription {
+    return this.#source.subscribe(subscriber)
+  }
+
+  /** @internal */
+  protected _clearSubscription(): void {
+    this.#subscription = this.#subscription?.unsubscribe()
+  }
+
+  /** @internal */
+  protected _cachedCalcValue(
+    deps: Set<Subscribable<unknown>>,
+    values: unknown[],
   ): T {
-    const { value, newDepValues, depsChanged } = BehaviorSelector._calcValue(
-      this.#getter,
-      depValues,
-    )
-    if (depsChanged) this.#depValues.next(newDepValues)
+    const depValues = zipSetArray(deps, values)
+    if (this.#calcCache) {
+      const [prevDepValues, prevVal] = this.#calcCache
+      if (areMapsEqual(prevDepValues, depValues)) return prevVal
+    }
+
+    const { value, newDepValues } = this._calcValue(depValues)
+    this.#calcCache = [newDepValues, value]
     return value
   }
 
-  protected _innerSubscribe(subject: Observer<T>): Subscription {
-    return this.#source.subscribe(subject)
-  }
+  /** @internal */
+  protected _calcValue(depValues: Map<Subscribable<unknown>, unknown>) {
+    this.#isCalcing = true
 
-  static _calcValue<T>(
-    getter: BehaviorSelectorGetter<T>,
-    depValues = new Map<BehaviorSubscribable<unknown>, unknown>(),
-  ): BehaviorSelectorCalc<T> {
-    const newDepValues = new Map<BehaviorSubscribable<unknown>, unknown>()
-    let depsChanged = false
-    const get = <B>(source: BehaviorSubscribable<B>): B => {
+    const getter = this.#getter
+
+    const newDeps = new Set<Subscribable<unknown>>()
+    const newDepValues = new Map<Subscribable<unknown>, unknown>()
+    const newSub = new Subscription()
+
+    const get = <B>(source: Subscribable<B>): B => {
       if (newDepValues.has(source)) {
         return newDepValues.get(source) as B
       }
-      const hasValue = depValues.has(source)
-      if (!hasValue) depsChanged = true
-      const value = hasValue
-        ? (depValues.get(source) as B)
+      newDeps.add(source)
+      const [v, s] = depValues.has(source)
+        ? [depValues.get(source) as B, source.subscribe({})]
         : requireInstantValue(source)
-      newDepValues.set(source, value)
-      return value
+      newDepValues.set(source, v)
+      newSub.add(s)
+      return v
     }
     const value = getter(get)
-    depsChanged = depsChanged || newDepValues.size !== depValues.size
-    return { value, newDepValues, depsChanged }
+
+    const oldDeps = new Set(depValues.keys())
+    if (!areSetsEqual(newDeps, oldDeps)) this.#deps.next(newDeps)
+
+    this._clearSubscription()
+    this.#subscription = newSub
+
+    this.#isCalcing = false
+    return { value, newDepValues }
   }
 }
 

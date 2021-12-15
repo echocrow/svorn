@@ -1,15 +1,15 @@
 import { subscribe } from 'svelte/internal'
 import type { NextObserver, Subscribable } from 'rxjs'
-import type { Updater, Writable } from 'svelte/store'
+import type { Writable } from 'svelte/store'
 
-interface BehaviorSubjectLike<T> extends NextObserver<T>, Subscribable<T> {
-  getValue(): T
-}
+interface NextObservable<T> extends NextObserver<T>, Subscribable<T> {}
 
-class RxWritable<T> implements Writable<T> {
-  #subject: BehaviorSubjectLike<T>
+type WritableStore<T> = Omit<Writable<T>, 'update'>
 
-  constructor(subject: BehaviorSubjectLike<T>) {
+class RxWritable<T> implements WritableStore<T> {
+  #subject: NextObservable<T>
+
+  constructor(subject: NextObservable<T>) {
     this.#subject = subject
   }
 
@@ -20,12 +20,8 @@ class RxWritable<T> implements Writable<T> {
   set(value: T): void {
     this.#subject.next(value)
   }
-
-  update(updater: Updater<T>) {
-    this.set(updater(this.#subject.getValue()))
-  }
 }
 
 export const writableFromRx = <T>(
-  subject: BehaviorSubjectLike<T>,
-): Writable<T> => new RxWritable(subject)
+  subject: NextObservable<T>,
+): WritableStore<T> => new RxWritable(subject)

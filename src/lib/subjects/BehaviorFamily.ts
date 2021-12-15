@@ -2,26 +2,29 @@ import {
   BehaviorSubject,
   Observable,
   type Observer,
+  type SubjectLike,
   Subscription,
   combineLatest,
   filter,
   finalize,
   map,
   of,
-  shareReplay,
+  share,
   switchMap,
 } from 'rxjs'
-import DerivedBehaviorSubject from './DerivedBehaviorSubject'
-import DerivedBehaviorSubscribable from './DerivedBehaviorSubscribable'
+import DerivedSubscribable from './DerivedSubscribable'
 import switchExhaustAll from '$lib/operators/switchExhaustAll'
 import { isEmpty } from '$lib/utils'
 
-class BehaviorMember<T> extends DerivedBehaviorSubject<T> {
+class BehaviorMember<T>
+  extends DerivedSubscribable<T>
+  implements SubjectLike<T>
+{
   #family: BehaviorFamily<T>
   #key: string
 
-  constructor(family: BehaviorFamily<T>, key: string, defaultValue: T) {
-    super(defaultValue)
+  constructor(family: BehaviorFamily<T>, key: string) {
+    super()
     this.#family = family
     this.#key = key
   }
@@ -38,11 +41,7 @@ class BehaviorMember<T> extends DerivedBehaviorSubject<T> {
     this.#family.reset(this.#key)
   }
 
-  protected _calcValue(): T {
-    return this.#family.getValue(this.#key)
-  }
-
-  protected _innerSubscribe(subject: Observer<T>): Subscription {
+  protected _subscribe(subject: Observer<T>): Subscription {
     return this.#family.subscribe(this.#key, subject)
   }
 }
@@ -51,24 +50,17 @@ type BehaviorRecord<T> = Record<string, BehaviorSubject<T>>
 
 type BehaviorFamilyRecord<T> = Record<string, T>
 
-class BehaviorFamilySnap<T> extends DerivedBehaviorSubscribable<
+class BehaviorFamilySnap<T> extends DerivedSubscribable<
   BehaviorFamilyRecord<T>
 > {
   #store: BehaviorSubject<BehaviorRecord<T>>
 
   constructor(store: BehaviorSubject<BehaviorRecord<T>>) {
-    super({})
+    super()
     this.#store = store
   }
 
-  protected _calcValue(): BehaviorFamilyRecord<T> {
-    return Object.entries(this.#store.getValue()).reduce((values, [k, v]) => {
-      values[k] = v.getValue()
-      return values
-    }, {} as BehaviorFamilyRecord<T>)
-  }
-
-  protected _innerSubscribe(
+  protected _subscribe(
     subject: Observer<BehaviorFamilyRecord<T>>,
   ): Subscription {
     return this.#store
@@ -100,7 +92,7 @@ class BehaviorFamily<T> {
         filter(Boolean),
         switchExhaustAll(),
         finalize(() => delete this.#sourcesCache[key]),
-        shareReplay({ bufferSize: 1, refCount: true }),
+        share({ connector: () => new BehaviorSubject(this.#default) }),
       )
     }
     return src.subscribe(observer)
@@ -142,7 +134,7 @@ class BehaviorFamily<T> {
   }
 
   get(key: string): BehaviorMember<T> {
-    return new BehaviorMember(this, key, this.#default)
+    return new BehaviorMember(this, key)
   }
 
   getValue(key: string): T {
