@@ -1,4 +1,5 @@
 import type { ObservedValueOf, Subscribable, Unsubscribable } from 'rxjs'
+import type { FamilyKey } from './types'
 
 export const isEmpty = (
   obj: Record<string | number | symbol, unknown> | Iterable<unknown>,
@@ -47,4 +48,18 @@ export const requireInstantValue = <S extends Subscribable<ObservedValueOf<S>>>(
   }
   const v = value[0]
   return [v, subscription]
+}
+
+export const stringify = (key: FamilyKey): string => {
+  switch (typeof key) {
+    case 'string':
+      return key
+    case 'number':
+    case 'boolean':
+      return String(key)
+    case 'undefined':
+      return ''
+  }
+  if (key === null) return 'null'
+  throw new Error('Invalid key type used as Behavior Family key')
 }

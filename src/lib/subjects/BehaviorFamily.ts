@@ -12,24 +12,25 @@ import {
   share,
   switchMap,
 } from 'rxjs'
+import type { FamilyKey } from '$lib/types'
 import DerivedSubscribable from './DerivedSubscribable'
 import switchExhaustAll from '$lib/operators/switchExhaustAll'
-import { isEmpty } from '$lib/utils'
+import { isEmpty, stringify } from '$lib/utils'
 
-class BehaviorMember<T>
-  extends DerivedSubscribable<T>
-  implements SubjectLike<T>
+class BehaviorMember<V, K extends FamilyKey>
+  extends DerivedSubscribable<V>
+  implements SubjectLike<V>
 {
-  #family: BehaviorFamily<T>
-  #key: string
+  #family: BehaviorFamily<V, K>
+  #key: K
 
-  constructor(family: BehaviorFamily<T>, key: string) {
+  constructor(family: BehaviorFamily<V, K>, key: K) {
     super()
     this.#family = family
     this.#key = key
   }
 
-  next(value: T) {
+  next(value: V) {
     this.#family.next(this.#key, value)
   }
 
@@ -41,27 +42,27 @@ class BehaviorMember<T>
     this.#family.reset(this.#key)
   }
 
-  protected _subscribe(subject: Observer<T>): Subscription {
+  protected _subscribe(subject: Observer<V>): Subscription {
     return this.#family.subscribe(this.#key, subject)
   }
 }
 
-type BehaviorRecord<T> = Record<string, BehaviorSubject<T>>
+type BehaviorRecord<V> = Record<string, BehaviorSubject<V>>
 
-type BehaviorFamilyRecord<T> = Record<string, T>
+type BehaviorFamilyRecord<V> = Record<string, V>
 
-class BehaviorFamilySnap<T> extends DerivedSubscribable<
-  BehaviorFamilyRecord<T>
+class BehaviorFamilySnap<V> extends DerivedSubscribable<
+  BehaviorFamilyRecord<V>
 > {
-  #store: BehaviorSubject<BehaviorRecord<T>>
+  #store: BehaviorSubject<BehaviorRecord<V>>
 
-  constructor(store: BehaviorSubject<BehaviorRecord<T>>) {
+  constructor(store: BehaviorSubject<BehaviorRecord<V>>) {
     super()
     this.#store = store
   }
 
   protected _subscribe(
-    subject: Observer<BehaviorFamilyRecord<T>>,
+    subject: Observer<BehaviorFamilyRecord<V>>,
   ): Subscription {
     return this.#store
       .pipe(
@@ -72,81 +73,86 @@ class BehaviorFamilySnap<T> extends DerivedSubscribable<
   }
 }
 
-class BehaviorFamily<T> {
-  #store = new BehaviorSubject<BehaviorRecord<T>>({})
-  #default: T
-  #sourcesCache: Record<string, Observable<T>> = {}
+class BehaviorFamily<V, K extends FamilyKey = string> {
+  #store = new BehaviorSubject<BehaviorRecord<V>>({})
+  #default: V
+  #sourcesCache: Record<string, Observable<V>> = {}
 
-  constructor(defaultValue: T, initial?: BehaviorFamilyRecord<T>) {
+  constructor(defaultValue: V, initial?: BehaviorFamilyRecord<V>) {
     this.#default = defaultValue
     if (initial) {
-      for (const [k, v] of Object.entries(initial)) this.set(k, v)
+      for (const [k, v] of Object.entries(initial)) this.set(k as K, v)
     }
   }
 
-  subscribe(key: string, observer: Partial<Observer<T>>): Subscription {
-    let src = this.#sourcesCache[key]
+  subscribe(key: K, observer: Partial<Observer<V>>): Subscription {
+    const k = stringify(key)
+    let src = this.#sourcesCache[k]
     if (!src) {
-      src = this.#sourcesCache[key] = this.#store.pipe(
-        map((v) => v[key]),
+      src = this.#sourcesCache[k] = this.#store.pipe(
+        map((v) => v[k]),
         filter(Boolean),
         switchExhaustAll(),
-        finalize(() => delete this.#sourcesCache[key]),
+        finalize(() => delete this.#sourcesCache[k]),
         share({ connector: () => new BehaviorSubject(this.#default) }),
       )
     }
     return src.subscribe(observer)
   }
 
-  reset(key: string): void {
+  reset(key: K): void {
+    const k = stringify(key)
     const data = this.#store.getValue()
-    const sub = data[key]
+    const sub = data[k]
     if (sub) {
       sub.next(this.#default)
-      delete data[key]
+      delete data[k]
       this.#store.next(data)
       sub.complete()
     }
   }
 
-  next(key: string, value: T): void {
+  next(key: K, value: V): void {
+    const k = stringify(key)
     const data = this.#store.getValue()
     if (value === this.#default) return this.reset(key)
 
-    const sub = data[key]
+    const sub = data[k]
     if (sub) {
       sub.next(value)
     } else {
-      data[key] = new BehaviorSubject(value)
+      data[k] = new BehaviorSubject(value)
       this.#store.next(data)
     }
   }
 
-  error(key: string, err: unknown): void {
+  error(key: K, err: unknown): void {
+    const k = stringify(key)
     const data = this.#store.getValue()
-    const sub = data[key]
+    const sub = data[k]
     if (sub) sub.error(err)
     else this.#store.error(err)
   }
 
-  set(key: string, value: T): void {
+  set(key: K, value: V): void {
     return this.next(key, value)
   }
 
-  get(key: string): BehaviorMember<T> {
+  get(key: K): BehaviorMember<V, K> {
     return new BehaviorMember(this, key)
   }
 
-  getValue(key: string): T {
-    return this.#store.getValue()[key]?.getValue() ?? this.#default
+  getValue(key: K): V {
+    const k = stringify(key)
+    return this.#store.getValue()[k]?.getValue() ?? this.#default
   }
 
   complete(): void {
-    for (const k of Object.keys(this.#store)) this.reset(k)
+    for (const k of Object.keys(this.#store)) this.reset(k as K)
     this.#store.complete()
   }
 
-  snap(): BehaviorFamilySnap<T> {
+  snap(): BehaviorFamilySnap<V> {
     return new BehaviorFamilySnap(this.#store)
   }
 }
