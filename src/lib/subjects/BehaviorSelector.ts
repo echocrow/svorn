@@ -12,6 +12,7 @@ import {
   shareReplay,
   switchMap,
 } from 'rxjs'
+import type { BehaviorSelectorGet, BehaviorSelectorGetter } from '$lib/types'
 import DerivedSubscribable from './DerivedSubscribable'
 import {
   areMapsEqual,
@@ -19,11 +20,6 @@ import {
   requireInstantValue,
   zipSetArray,
 } from '$lib/utils'
-
-type BehaviorSelectorGet = <S extends Subscribable<ObservedValueOf<S>>>(
-  source: S,
-) => ObservedValueOf<S>
-type BehaviorSelectorGetter<T> = (get: BehaviorSelectorGet) => T
 
 interface DepsMap extends Map<Subscribable<unknown>, unknown> {
   get<S extends Subscribable<ObservedValueOf<S>>>(
