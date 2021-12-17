@@ -1,21 +1,19 @@
 import {
   BehaviorSubject,
-  Observable,
   type Observer,
   type SubjectLike,
   Subscription,
   combineLatest,
   filter,
-  finalize,
   map,
   of,
-  share,
   switchMap,
 } from 'rxjs'
 import type { FamilyKey } from '$lib/types'
 import DerivedSubscribable from './DerivedSubscribable'
 import switchExhaustAll from '$lib/operators/switchExhaustAll'
 import { isEmpty, stringify } from '$lib/utils'
+import FamilySourceCache from '$lib/helpers/FamilySourceCache'
 
 class BehaviorMember<V, K extends FamilyKey>
   extends DerivedSubscribable<V>
@@ -76,28 +74,26 @@ class BehaviorFamilySnap<V> extends DerivedSubscribable<
 class BehaviorFamily<V, K extends FamilyKey = string> {
   #store = new BehaviorSubject<BehaviorRecord<V>>({})
   #default: V
-  #sourcesCache: Record<string, Observable<V>> = {}
+  #sourcesCache: FamilySourceCache<V, K>
 
   constructor(defaultValue: V, initial?: BehaviorFamilyRecord<V>) {
     this.#default = defaultValue
+    this.#sourcesCache = new FamilySourceCache(
+      (_, k) =>
+        this.#store.pipe(
+          map((v) => v[k]),
+          filter(Boolean),
+          switchExhaustAll(),
+        ),
+      () => new BehaviorSubject(defaultValue),
+    )
     if (initial) {
       for (const [k, v] of Object.entries(initial)) this.set(k as K, v)
     }
   }
 
   subscribe(key: K, observer: Partial<Observer<V>>): Subscription {
-    const k = stringify(key)
-    let src = this.#sourcesCache[k]
-    if (!src) {
-      src = this.#sourcesCache[k] = this.#store.pipe(
-        map((v) => v[k]),
-        filter(Boolean),
-        switchExhaustAll(),
-        finalize(() => delete this.#sourcesCache[k]),
-        share({ connector: () => new BehaviorSubject(this.#default) }),
-      )
-    }
-    return src.subscribe(observer)
+    return this.#sourcesCache.subscribe(key, observer)
   }
 
   reset(key: K): void {
