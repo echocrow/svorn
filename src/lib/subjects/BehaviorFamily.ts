@@ -9,7 +9,7 @@ import {
   of,
   switchMap,
 } from 'rxjs'
-import type { FamilyKey } from '$lib/types'
+import type { Family, FamilyKey } from '$lib/types'
 import DerivedSubscribable from './DerivedSubscribable'
 import switchExhaustAll from '$lib/operators/switchExhaustAll'
 import { isEmpty, stringify } from '$lib/utils'
@@ -71,7 +71,7 @@ class BehaviorFamilySnap<V> extends DerivedSubscribable<
   }
 }
 
-class BehaviorFamily<V, K extends FamilyKey = string> {
+class BehaviorFamily<V, K extends FamilyKey = string> implements Family<V, K> {
   #store = new BehaviorSubject<BehaviorRecord<V>>({})
   #default: V
   #sourcesCache: FamilySourceCache<V, K>

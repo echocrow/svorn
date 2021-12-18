@@ -1,5 +1,5 @@
 import type { Observer, Subscription } from 'rxjs'
-import type { BehaviorSelectorGetter, FamilyKey } from '$lib/types'
+import type { BehaviorSelectorGetter, Family, FamilyKey } from '$lib/types'
 import DerivedSubscribable from './DerivedSubscribable'
 import FamilySourceCache from '$lib/helpers/FamilySourceCache'
 import BehaviorSelectorSource from '$lib/helpers/BehaviorSelectorSource'
@@ -26,7 +26,9 @@ export type BehaviorSelectorFamilyGetter<V, K extends FamilyKey> = (
   key: K,
 ) => BehaviorSelectorGetter<V>
 
-class BehaviorSelectorFamily<V, K extends FamilyKey = string> {
+class BehaviorSelectorFamily<V, K extends FamilyKey = string>
+  implements Family<V, K>
+{
   #sourcesCache: FamilySourceCache<V, K>
 
   constructor(getter: BehaviorSelectorFamilyGetter<V, K>) {
