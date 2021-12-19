@@ -39,12 +39,15 @@ export const requireInstantValue = <S extends Subscribable<ObservedValueOf<S>>>(
   source: S,
 ): readonly [value: ObservedValueOf<S>, subscription: Unsubscribable] => {
   let value: [ObservedValueOf<S>] | undefined = undefined
+  let err: Error | undefined
   const subscription = source.subscribe({
     next: (v) => (value = [v]),
+    error: (e) => (err = e),
   })
-  if (!value) {
+  if (!value || err) {
+    if (!err) err = new Error('todo: value not received')
     subscription.unsubscribe()
-    throw new Error('todo: value not received')
+    throw err
   }
   const v = value[0]
   return [v, subscription]
