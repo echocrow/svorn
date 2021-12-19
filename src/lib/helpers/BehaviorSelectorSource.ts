@@ -32,15 +32,15 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
   #getter: BehaviorSelectorGetter<T>
 
   #deps = new BehaviorSubject(new Set<Subscribable<unknown>>())
-  #isCalcing = false
   #source = this.#deps.pipe(
     switchMap((deps) =>
       (deps.size ? combineLatest([...deps]) : of([] as unknown[])).pipe(
         map((values) => [deps, values] as const),
       ),
     ),
-    filter(() => !this.#isCalcing),
-    map(([deps, values]) => this._cachedCalcValue(deps, values)),
+    map(([deps, values]) => this._eval(deps, values)),
+    filter(([_, mustReval]) => !mustReval),
+    map(([value, _]) => value),
     finalize(() => this._clearSubscription()),
   )
 
@@ -67,25 +67,16 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
   }
 
   /** @internal */
-  protected _cachedCalcValue(
+  protected _eval(
     deps: Set<Subscribable<unknown>>,
     values: unknown[],
-  ): T {
+  ): readonly [value: T, mustReval: boolean] {
     const depValues = zipSetArray(deps, values) as DepsMap
 
     if (this.#evalCache) {
       const [prevDepValues, prevVal] = this.#evalCache
-      if (areMapsEqual(prevDepValues, depValues)) return prevVal
+      if (areMapsEqual(prevDepValues, depValues)) return [prevVal, false]
     }
-
-    const { value, nextDepValues } = this._calcValue(depValues)
-    this.#evalCache = [nextDepValues, value]
-    return value
-  }
-
-  /** @internal */
-  protected _calcValue(depValues: DepsMap) {
-    this.#isCalcing = true
 
     const nextDeps = new Set<Subscribable<unknown>>()
     const nextDepValues = new Map() as DepsMap
@@ -95,23 +86,24 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
       if (nextDepValues.has(source)) {
         return nextDepValues.get(source)! // eslint-disable-line @typescript-eslint/no-non-null-assertion
       }
-      nextDeps.add(source)
       const [v, s] = depValues.has(source)
         ? [depValues.get(source)!, source.subscribe({})] // eslint-disable-line @typescript-eslint/no-non-null-assertion
         : requireInstantValue(source)
+      nextDeps.add(source)
       nextDepValues.set(source, v)
       nextSub.add(s)
       return v
     }
     const value = this.#getter(get)
 
-    const oldDeps = new Set(depValues.keys())
-    if (!areSetsEqual(nextDeps, oldDeps)) this.#deps.next(nextDeps)
+    this.#evalCache = [nextDepValues, value]
 
     this._clearSubscription(nextSub)
 
-    this.#isCalcing = false
-    return { value, nextDepValues }
+    const mustReval = !areSetsEqual(nextDeps, deps)
+    if (mustReval) this.#deps.next(nextDeps)
+
+    return [value, mustReval]
   }
 }
 
