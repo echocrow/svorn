@@ -20,7 +20,7 @@ export const areMapsEqual = (
 ): boolean => {
   if (a.size !== b.size) return false
   for (const [k, v] of a.entries())
-    if (!b.has(k) || b.get(k) !== v) return false
+    if (!b.has(k) || !Object.is(b.get(k), v)) return false
   return true
 }
 
