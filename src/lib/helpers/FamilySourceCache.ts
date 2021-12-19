@@ -1,6 +1,8 @@
 import {
   type Observable,
+  type ObservedValueOf,
   type Observer,
+  Subject,
   type SubjectLike,
   type Subscription,
   finalize,
@@ -9,29 +11,67 @@ import {
 import type { FamilyKey } from '$lib/types'
 import { stringify } from '$lib/utils'
 
-class FamilySourceCache<V, K extends FamilyKey> {
-  #cache: Record<string, Observable<V>> = {}
-  #getSource: (key: K, k: string) => Observable<V>
-  #getConnector: () => SubjectLike<V>
+interface FamilySourceCacheConfig<
+  S extends Observable<unknown>,
+  K extends FamilyKey,
+> {
+  connector?: () => SubjectLike<ObservedValueOf<S>>
+  preSubscribe?: (connection: {
+    source: S
+    key: K
+    k: string
+    isFirst: boolean
+  }) => void
+  finalize?: (key: K, k: string) => void
+}
+
+class FamilySourceCache<S extends Observable<unknown>, K extends FamilyKey> {
+  #cache: Record<string, [source: S, subject: Observable<ObservedValueOf<S>>]> =
+    {}
+
+  #source: (key: K, k: string) => S
+
+  #connector: NonNullable<FamilySourceCacheConfig<S, K>['connector']>
+  #preSubscribe?: FamilySourceCacheConfig<S, K>['preSubscribe']
+  #finalize?: FamilySourceCacheConfig<S, K>['finalize']
 
   constructor(
-    getSource: (key: K, k: string) => Observable<V>,
-    getConnector: () => SubjectLike<V>,
+    source: (key: K, k: string) => S,
+    {
+      connector = () => new Subject<ObservedValueOf<S>>(),
+      preSubscribe,
+      finalize,
+    }: FamilySourceCacheConfig<S, K>,
   ) {
-    this.#getSource = getSource
-    this.#getConnector = getConnector
+    this.#source = source
+    this.#connector = connector
+    this.#preSubscribe = preSubscribe
+    this.#finalize = finalize
   }
 
-  subscribe(key: K, observer: Partial<Observer<V>>): Subscription {
+  subscribe(
+    key: K,
+    observer: Partial<Observer<ObservedValueOf<S>>>,
+  ): Subscription {
     const k = stringify(key)
-    let src = this.#cache[k]
-    if (!src) {
-      src = this.#cache[k] = this.#getSource(key, k).pipe(
-        finalize(() => delete this.#cache[k]),
-        share({ connector: this.#getConnector }),
-      )
+    let cached = this.#cache[k]
+    const isFirst = !cached
+    if (!cached) {
+      const src = this.#source(key, k)
+      cached = this.#cache[k] = [
+        src,
+        (src as Observable<ObservedValueOf<S>>).pipe(
+          finalize(() => {
+            delete this.#cache[k]
+            this.#finalize?.(key, k)
+          }),
+          share({ connector: this.#connector }),
+        ),
+      ]
     }
-    return src.subscribe(observer)
+    const [source, subject] = cached
+    this.#preSubscribe?.({ source: source, key, k, isFirst })
+    return subject.subscribe(observer)
   }
 }
 

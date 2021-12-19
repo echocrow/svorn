@@ -28,6 +28,20 @@ interface DepsMap extends Map<Subscribable<unknown>, unknown> {
   ): ObservedValueOf<S> | undefined
 }
 
+class WeakMutex<T extends object> {
+  #locks = new WeakSet<T>()
+  isLocked(key: T): boolean {
+    return this.#locks.has(key)
+  }
+  lock(key: T): void {
+    this.#locks.add(key)
+  }
+  unlock(key: T): void {
+    this.#locks.delete(key)
+  }
+}
+const globalDepsMutex = new WeakMutex<BehaviorSelectorSource<unknown>>()
+
 class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
   #getter: BehaviorSelectorGetter<T>
 
@@ -52,7 +66,12 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
     this.#getter = getter
   }
 
+  healthCheck(): void {
+    this._confirmUnlocked()
+  }
+
   protected _subscribe(subscriber: Subscriber<T>): Subscription {
+    this.healthCheck()
     return this.#source.subscribe(subscriber)
   }
 
@@ -67,6 +86,23 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
   }
 
   /** @internal */
+  protected _confirmUnlocked(): void {
+    if (globalDepsMutex.isLocked(this))
+      throw new Error('todo: circular dependency')
+  }
+
+  /** @internal */
+  protected _lock(): void {
+    this._confirmUnlocked()
+    globalDepsMutex.lock(this)
+  }
+
+  /** @internal */
+  protected _unlock(): void {
+    globalDepsMutex.unlock(this)
+  }
+
+  /** @internal */
   protected _eval(
     deps: Set<Subscribable<unknown>>,
     values: unknown[],
@@ -77,6 +113,8 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
       const [prevDepValues, prevVal] = this.#evalCache
       if (areMapsEqual(prevDepValues, depValues)) return [prevVal, false]
     }
+
+    this._lock()
 
     const nextDeps = new Set<Subscribable<unknown>>()
     const nextDepValues = new Map() as DepsMap
@@ -95,6 +133,8 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
       return v
     }
     const value = this.#getter(get)
+
+    this._unlock()
 
     this.#evalCache = [nextDepValues, value]
 

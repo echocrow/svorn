@@ -29,12 +29,18 @@ export type BehaviorSelectorFamilyGetter<V, K extends FamilyKey> = (
 class BehaviorSelectorFamily<V, K extends FamilyKey = string>
   implements Family<V, K>
 {
-  #sourcesCache: FamilySourceCache<V, K>
+  #sourcesCache: FamilySourceCache<BehaviorSelectorSource<V>, K>
 
   constructor(getter: BehaviorSelectorFamilyGetter<V, K>) {
     this.#sourcesCache = new FamilySourceCache(
-      (key) => new BehaviorSelectorSource(getter(key)),
-      BehaviorSelectorSource.getConnector,
+      (key): BehaviorSelectorSource<V> =>
+        new BehaviorSelectorSource(getter(key)),
+      {
+        connector: BehaviorSelectorSource.getConnector,
+        preSubscribe: ({ source, isFirst }) => {
+          if (!isFirst) source.healthCheck()
+        },
+      },
     )
   }
 

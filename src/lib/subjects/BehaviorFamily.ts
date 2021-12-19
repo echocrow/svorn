@@ -1,5 +1,6 @@
 import {
   BehaviorSubject,
+  type Observable,
   type Observer,
   type SubjectLike,
   Subscription,
@@ -74,7 +75,7 @@ class BehaviorFamilySnap<V> extends DerivedSubscribable<
 class BehaviorFamily<V, K extends FamilyKey = string> implements Family<V, K> {
   #store = new BehaviorSubject<BehaviorRecord<V>>({})
   #default: V
-  #sourcesCache: FamilySourceCache<V, K>
+  #sourcesCache: FamilySourceCache<Observable<V>, K>
 
   constructor(defaultValue: V, initial?: BehaviorFamilyRecord<V>) {
     this.#default = defaultValue
@@ -85,7 +86,7 @@ class BehaviorFamily<V, K extends FamilyKey = string> implements Family<V, K> {
           filter(Boolean),
           switchExhaustAll(),
         ),
-      () => new BehaviorSubject(defaultValue),
+      { connector: () => new BehaviorSubject(defaultValue) },
     )
     if (initial) {
       for (const [k, v] of Object.entries(initial)) this.set(k as K, v)
