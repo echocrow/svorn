@@ -58,7 +58,9 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
     finalize(() => this._clearSubscription()),
   )
 
-  #evalCache?: [DepsMap, T]
+  #evalCache?:
+    | { depValues: DepsMap; value: T }
+    | { depValues: DepsMap; err: unknown }
   #subscription?: Subscription
 
   constructor(getter: BehaviorSelectorGetter<T>) {
@@ -109,9 +111,10 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
   ): readonly [value: T, mustReval: boolean] {
     const depValues = zipSetArray(deps, values) as DepsMap
 
-    if (this.#evalCache) {
-      const [prevDepValues, prevVal] = this.#evalCache
-      if (areMapsEqual(prevDepValues, depValues)) return [prevVal, false]
+    const cache = this.#evalCache
+    if (cache && areMapsEqual(depValues, cache.depValues)) {
+      if ('err' in cache) throw cache.err
+      return [cache.value, false]
     }
 
     this._lock()
@@ -132,17 +135,20 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
       nextSub.add(s)
       return v
     }
-    const value = this.#getter(get)
-
-    this._unlock()
-
-    this.#evalCache = [nextDepValues, value]
-
-    this._clearSubscription(nextSub)
-
-    const mustReval = !areSetsEqual(nextDeps, deps)
-    if (mustReval) this.#deps.next(nextDeps)
-
+    let value: T
+    let mustReval: boolean
+    try {
+      value = this.#getter(get)
+      this.#evalCache = { depValues: nextDepValues, value }
+    } catch (err) {
+      this.#evalCache = { depValues: nextDepValues, err }
+      throw err
+    } finally {
+      this._unlock()
+      this._clearSubscription(nextSub)
+      mustReval = !areSetsEqual(nextDeps, deps)
+      if (mustReval) this.#deps.next(nextDeps)
+    }
     return [value, mustReval]
   }
 }
