@@ -14,13 +14,13 @@ export const areSetsEqual = <T>(a: Set<T>, b: Set<T>): boolean => {
   return true
 }
 
-export const areMapsEqual = (
-  a: Map<unknown, unknown>,
-  b: Map<unknown, unknown>,
+export const mapContains = (
+  outer: Map<unknown, unknown>,
+  inner: Map<unknown, unknown>,
 ): boolean => {
-  if (a.size !== b.size) return false
-  for (const [k, v] of a.entries())
-    if (!b.has(k) || !Object.is(b.get(k), v)) return false
+  if (outer.size < inner.size) return false
+  for (const [k, v] of inner.entries())
+    if (!outer.has(k) || !Object.is(outer.get(k), v)) return false
   return true
 }
 

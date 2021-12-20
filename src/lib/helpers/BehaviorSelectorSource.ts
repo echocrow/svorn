@@ -15,8 +15,8 @@ import {
 } from 'rxjs'
 import type { BehaviorSelectorGet, BehaviorSelectorGetter } from '$lib/types'
 import {
-  areMapsEqual,
   areSetsEqual,
+  mapContains,
   requireInstantValue,
   zipSetArray,
 } from '$lib/utils'
@@ -112,7 +112,7 @@ class BehaviorSelectorSource<T> extends DerivedSubscribable<T> {
     const depValues = zipSetArray(deps, values) as DepsMap
 
     const cache = this.#evalCache
-    if (cache && areMapsEqual(depValues, cache.depValues)) {
+    if (cache && mapContains(cache.depValues, depValues)) {
       if ('err' in cache) throw cache.err
       return [cache.value, false]
     }
