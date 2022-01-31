@@ -1,6 +1,7 @@
 <script lang="ts">
   import { interval } from 'rxjs'
   import { onMount } from 'svelte'
+
   import { nameCell } from '$demo/cells'
   import { derivedSheet, sheet } from '$demo/store'
 

@@ -1,7 +1,7 @@
-import path from 'path'
+import adapter from '@sveltejs/adapter-auto'
 import { readFileSync } from 'fs'
 import JSON5 from 'json5'
-import adapter from '@sveltejs/adapter-auto'
+import path from 'path'
 import preprocess from 'svelte-preprocess'
 
 // JSON imports are currently unavailable, so we need to JSON-parse directly.

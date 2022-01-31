@@ -1,8 +1,8 @@
 import {
-  Observable,
   type Subscribable,
   type Subscriber,
   type Subscription,
+  Observable,
 } from 'rxjs'
 
 abstract class DerivedSubscribable<T>

@@ -1,18 +1,20 @@
 import {
-  BehaviorSubject,
   type ObservedValueOf,
-  ReplaySubject,
   type SubjectLike,
   type Subscribable,
   type Subscriber,
-  Subscription,
+  BehaviorSubject,
   combineLatest,
   filter,
   finalize,
   map,
   of,
+  ReplaySubject,
+  Subscription,
   switchMap,
 } from 'rxjs'
+
+import DerivedSubscribable from '$lib/subjects/DerivedSubscribable'
 import type { BehaviorSelectorGet, BehaviorSelectorGetter } from '$lib/types'
 import {
   areSetsEqual,
@@ -20,7 +22,6 @@ import {
   requireInstantValue,
   zipSetArray,
 } from '$lib/utils'
-import DerivedSubscribable from '$lib/subjects/DerivedSubscribable'
 
 interface DepsMap extends Map<Subscribable<unknown>, unknown> {
   get<S extends Subscribable<ObservedValueOf<S>>>(

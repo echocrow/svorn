@@ -1,4 +1,4 @@
-import { Observable, type Subscriber } from 'rxjs'
+import { type Subscriber, Observable } from 'rxjs'
 
 const defaultWith =
   <T>(def: T) =>

@@ -1,8 +1,8 @@
 import {
-  Observable,
   type OperatorFunction,
   type Subscriber,
   type Subscription,
+  Observable,
 } from 'rxjs'
 
 const switchExhaustAll =

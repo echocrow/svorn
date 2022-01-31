@@ -20,6 +20,7 @@ plugins:
   - svelte3
   - '@typescript-eslint'
   - import
+  - simple-import-sort
   - unused-imports
 
 settings:
@@ -30,15 +31,19 @@ settings:
 overrides:
   - files: ['*.svelte']
     processor: svelte3/svelte3
+    rules:
+      import/first: off
+      import/no-duplicates: off
+      import/no-unused-modules: off
 
 rules:
   # Imports.
   '@typescript-eslint/no-unused-vars': off
-  import/order:
-    - warn
-    - groups: [builtin, external, type, parent, sibling, index]
+  import/first: error
+  import/newline-after-import: error
+  import/no-duplicates: error
+  import/no-unresolved: off
   import/no-unused-modules: warn
-  sort-imports:
-    - warn
-    - ignoreDeclarationSort: true
+  simple-import-sort/exports: error
+  simple-import-sort/imports: error
   unused-imports/no-unused-imports: error

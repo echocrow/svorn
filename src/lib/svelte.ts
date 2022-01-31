@@ -1,5 +1,5 @@
-import { subscribe } from 'svelte/internal'
 import type { NextObserver, Subscribable } from 'rxjs'
+import { subscribe } from 'svelte/internal'
 import type { Writable } from 'svelte/store'
 
 interface NextObservable<T> extends NextObserver<T>, Subscribable<T> {}

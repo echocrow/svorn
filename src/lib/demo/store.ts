@@ -1,10 +1,11 @@
-import { BehaviorSubject } from 'rxjs'
-import { nameCell, parseCellName } from './cells'
 import {
   BehaviorFamily,
   BehaviorSelector,
   BehaviorSelectorFamily,
 } from 'rxcoil'
+import { BehaviorSubject } from 'rxjs'
+
+import { nameCell, parseCellName } from './cells'
 
 export const sheet = new BehaviorFamily<string | number>('', {
   B2: '!',
