@@ -2,8 +2,8 @@
   import { interval } from 'rxjs'
   import { onMount } from 'svelte'
 
-  import { nameCell } from '$demo/cells'
-  import { derivedSheet, sheet } from '$demo/store'
+  import { nameCell } from '$lib/cells'
+  import { derivedSheet, sheet } from '$lib/store'
 
   export let row: number
   export let col: number

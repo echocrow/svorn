@@ -1,38 +1,32 @@
 {
-  "name": "rxcoil",
-  "version": "0.0.1",
+  "name": "svorn-monorepo",
+  "repository": {
+    "type": "git",
+    "url": "git+https://EchoCrow@github.com/echocrow/svorn.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/echocrow/svorn/issues"
+  },
+  "homepage": "https://github.com/echocrow/svorn#readme",
+  "private": true,
   "scripts": {
-    "dev": "svelte-kit dev",
-    "build": "svelte-kit build",
-    "package": "svelte-kit package",
-    "preview": "svelte-kit preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
+    "dev": "pnpm run dev -r",
     "lint": "eslint --ignore-path .gitignore . && prettier --check --plugin-search-dir=. .",
     "format": "eslint --fix --ignore-path .gitignore . && prettier --write --plugin-search-dir=. ."
   },
   "devDependencies": {
-    "@sveltejs/adapter-auto": "next",
-    "@sveltejs/kit": "next",
-    "@typescript-eslint/eslint-plugin": "^5.7.0",
-    "@typescript-eslint/parser": "^5.7.0",
-    "eslint": "^8.4.1",
+    "@typescript-eslint/eslint-plugin": "^5.10.1",
+    "@typescript-eslint/parser": "^5.10.1",
+    "eslint": "^8.8.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-import-resolver-typescript": "^2.5.0",
-    "eslint-plugin-import": "^2.25.3",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-simple-import-sort": "^7.0.0",
-    "eslint-plugin-svelte3": "^3.2.1",
     "eslint-plugin-unused-imports": "^2.0.0",
-    "json5": "^2.2.0",
-    "prettier": "^2.5.1",
-    "prettier-plugin-svelte": "^2.5.1",
-    "rxjs": "^7.4.0",
-    "svelte": "^3.44.3",
-    "svelte-check": "^2.2.10",
-    "svelte-preprocess": "^4.10.0",
-    "svelte2tsx": "^0.4.11",
-    "tslib": "^2.3.1",
-    "typescript": "^4.5.4"
-  },
-  "type": "module"
+    "prettier": "^2.5.1"
+  }
 }

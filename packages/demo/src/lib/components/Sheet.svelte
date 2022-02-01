@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { derivedSheet } from '$demo/store'
+  import { derivedSheet } from '$lib/store'
 
   import Cell from './Cell.svelte'
   import CellWriter from './CellWriter.svelte'
   import StoreLog from './StoreLog.svelte'
-  import ToggleWrapper from './ToggleWrapper.sveltemo/store'
+  import ToggleWrapper from './ToggleWrapper.svelte'
 
   export let cols = 9
   export let rows = 9

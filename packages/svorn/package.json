@@ -1,0 +1,23 @@
+{
+  "name": "svorn",
+  "type": "module",
+  "main": "src/index.ts",
+  "publishConfig": {
+    "source": "src/index.ts",
+    "exports": "./dist/svorn.js",
+    "main": "./dist/svorn.cjs",
+    "module": "./dist/svorn.module.js",
+    "unpkg": "./dist/svorn.umd.js",
+    "types": "./dist/svorn.d.ts"
+  },
+  "scripts": {
+    "build": "microbundle"
+  },
+  "version": "0.0.1",
+  "devDependencies": {
+    "microbundle": "^0.14.2",
+    "rxjs": "^7.5.2",
+    "svelte": "^3.46.3",
+    "typescript": "^4.5.5"
+  }
+}

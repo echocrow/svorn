@@ -1,7 +1,7 @@
 import { type Observable, type Observer, type Subscription, share } from 'rxjs'
 
-import BehaviorSelectorSource from '$lib/helpers/BehaviorSelectorSource'
-import type { BehaviorSelectorGetter } from '$lib/types'
+import BehaviorSelectorSource from '$src/helpers/BehaviorSelectorSource'
+import type { BehaviorSelectorGetter } from '$src/types'
 
 import DerivedSubscribable from './DerivedSubscribable'
 

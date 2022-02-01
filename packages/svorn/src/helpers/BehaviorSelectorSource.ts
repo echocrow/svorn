@@ -14,14 +14,14 @@ import {
   switchMap,
 } from 'rxjs'
 
-import DerivedSubscribable from '$lib/subjects/DerivedSubscribable'
-import type { BehaviorSelectorGet, BehaviorSelectorGetter } from '$lib/types'
+import DerivedSubscribable from '$src/subjects/DerivedSubscribable'
+import type { BehaviorSelectorGet, BehaviorSelectorGetter } from '$src/types'
 import {
   areSetsEqual,
   mapContains,
   requireInstantValue,
   zipSetArray,
-} from '$lib/utils'
+} from '$src/utils'
 
 interface DepsMap extends Map<Subscribable<unknown>, unknown> {
   get<S extends Subscribable<ObservedValueOf<S>>>(

@@ -1,0 +1,13 @@
+plugins:
+  - svelte3
+
+settings:
+  svelte3/typescript: true
+
+overrides:
+  - files: ['*.svelte']
+    processor: svelte3/svelte3
+    rules:
+      import/first: off
+      import/no-duplicates: off
+      import/no-unused-modules: off

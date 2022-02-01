@@ -1,2 +1,4 @@
+dist
 .svelte-kit
+
 pnpm-lock.yaml

@@ -2,11 +2,11 @@ root: true
 parser: '@typescript-eslint/parser'
 parserOptions:
   sourceType: module
-  ecmaVersion: 2019
+  ecmaVersion: latest
 
 env:
   browser: true
-  es2017: true
+  es2021: true
   node: true
 
 extends:
@@ -17,24 +17,14 @@ extends:
   - prettier
 
 plugins:
-  - svelte3
   - '@typescript-eslint'
   - import
   - simple-import-sort
   - unused-imports
 
 settings:
-  svelte3/typescript: true
   import/resolver:
     typescript: {}
-
-overrides:
-  - files: ['*.svelte']
-    processor: svelte3/svelte3
-    rules:
-      import/first: off
-      import/no-duplicates: off
-      import/no-unused-modules: off
 
 rules:
   # Imports.

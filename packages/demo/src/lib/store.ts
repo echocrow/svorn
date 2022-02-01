@@ -1,9 +1,5 @@
-import {
-  BehaviorFamily,
-  BehaviorSelector,
-  BehaviorSelectorFamily,
-} from 'rxcoil'
 import { BehaviorSubject } from 'rxjs'
+import { BehaviorFamily, BehaviorSelector, BehaviorSelectorFamily } from 'svorn'
 
 import { nameCell, parseCellName } from './cells'
 

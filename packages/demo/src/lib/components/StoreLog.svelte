@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { sheet } from '$demo/store'
+  import { sheet } from '$lib/store'
 
   const sheetSnap = sheet.snap()
 </script>
