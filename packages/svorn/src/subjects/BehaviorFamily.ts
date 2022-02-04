@@ -11,14 +11,13 @@ import {
   switchMap,
 } from 'rxjs'
 
-import FamilySourceCache from '$src/helpers/FamilySourceCache'
-import switchExhaustAll from '$src/operators/switchExhaustAll'
-import type { Family, FamilyKey } from '$src/types'
-import { isEmpty, stringify } from '$src/utils'
-
+import FamilySourceCache from '../helpers/FamilySourceCache'
+import switchExhaustAll from '../operators/switchExhaustAll'
+import type { Family, FamilyKey } from '../types'
+import { isEmpty, stringify } from '../utils'
 import DerivedSubscribable from './DerivedSubscribable'
 
-class BehaviorMember<V, K extends FamilyKey>
+export class BehaviorMember<V, K extends FamilyKey>
   extends DerivedSubscribable<V>
   implements SubjectLike<V>
 {

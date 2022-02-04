@@ -1,9 +1,8 @@
 import type { Observer, Subscription } from 'rxjs'
 
-import BehaviorSelectorSource from '$src/helpers/BehaviorSelectorSource'
-import FamilySourceCache from '$src/helpers/FamilySourceCache'
-import type { BehaviorSelectorGetter, Family, FamilyKey } from '$src/types'
-
+import BehaviorSelectorSource from '../helpers/BehaviorSelectorSource'
+import FamilySourceCache from '../helpers/FamilySourceCache'
+import type { BehaviorSelectorGetter, Family, FamilyKey } from '../types'
 import DerivedSubscribable from './DerivedSubscribable'
 
 class BehaviorSelectorMember<

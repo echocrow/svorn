@@ -9,8 +9,8 @@ import {
   Subject,
 } from 'rxjs'
 
-import type { FamilyKey } from '$src/types'
-import { stringify } from '$src/utils'
+import type { FamilyKey } from '../types'
+import { stringify } from '../utils'
 
 interface FamilySourceCacheConfig<
   S extends Observable<unknown>,
