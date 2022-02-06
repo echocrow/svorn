@@ -7,8 +7,6 @@ import type {
 } from 'rxjs'
 import type {
   Readable as SvelteReadable,
-  Subscriber as SvelteSubscriber,
-  Unsubscriber as SvelteUnsubscriber,
   Writable as SvelteWritable,
 } from 'svelte/store'
 
@@ -18,10 +16,10 @@ interface RxBehaviorSubjectLike<T> extends RxSubjectLike<T> {
 
 export interface Readable<V>
   extends RxSubscribable<V>,
-    SvelteReadable<V>,
-    SvelteStore<V> {
+    Omit<SvelteReadable<V>, 'subscribe'>,
+    Omit<SvelteStore<V>, 'subscribe'> {
   subscribe(observer: Partial<RxObserver<V>>): RxUnsubscribable
-  subscribe(run: SvelteSubscriber<V>): SvelteUnsubscriber
+  subscribe(next: (value: V) => void): RxUnsubscribable
 }
 
 export interface Writable<V>
