@@ -2,7 +2,7 @@
   import { writableFromRx } from 'svorn'
 
   import { nameCol, nameRow } from '$lib/cells'
-  import { currCell, currCol, currRow } from '$lib/store'
+  import { currCol, currRow } from '$lib/store'
   import { range } from '$lib/utils'
 
   export let cols: number
@@ -13,7 +13,7 @@
 
   const col = writableFromRx(currCol)
   const row = writableFromRx(currRow)
-  $: cellVal = writableFromRx($currCell)
+  // $: cellVal = writableFromRx($currCell)
 
   const getRandomInt = (max: number) => Math.floor(Math.random() * max)
 
@@ -39,4 +39,4 @@
 
 <button on:click={randoCell}>?</button>
 
-<input type="text" bind:value={$cellVal} />
+<!-- <input type="text" bind:value={$cellVal} /> -->

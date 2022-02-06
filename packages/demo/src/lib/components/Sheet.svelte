@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { derivedSheet } from '$lib/store'
+  // import { derivedSheet } from '$lib/store'
 
   import Cell from './Cell.svelte'
   import CellWriter from './CellWriter.svelte'
@@ -38,7 +38,7 @@
 
 <hr />
 
-<table>
+<!-- <table>
   {#each Array(rows) as _, row}
     <tr>
       {#each Array(cols) as _, col}
@@ -50,8 +50,7 @@
       {/each}
     </tr>
   {/each}
-</table>
-
+</table> -->
 <style>
   table {
     border-collapse: collapse;
