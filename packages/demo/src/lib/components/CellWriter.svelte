@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { writableFromRx } from 'svorn'
-
   import { nameCol, nameRow } from '$lib/cells'
   import { currCol, currRow } from '$lib/store'
   import { range } from '$lib/utils'
@@ -11,9 +9,7 @@
   $: colOps = range(cols).map(nameCol)
   $: rowOps = range(rows).map(nameRow)
 
-  const col = writableFromRx(currCol)
-  const row = writableFromRx(currRow)
-  // $: cellVal = writableFromRx($currCell)
+  // $: cellVal = $currCell
 
   const getRandomInt = (max: number) => Math.floor(Math.random() * max)
 
@@ -25,13 +21,13 @@
   }
 </script>
 
-<select name="col" bind:value={$col}>
+<select name="col" bind:value={$currCol}>
   {#each colOps as colOp, col}
     <option value={col}>{colOp}</option>
   {/each}
 </select>
 
-<select name="row" bind:value={$row}>
+<select name="row" bind:value={$currRow}>
   {#each rowOps as rowOp, row}
     <option value={row}>{rowOp}</option>
   {/each}

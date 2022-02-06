@@ -1,30 +1,27 @@
 import {
   type Observable,
   type Observer,
-  type SubjectLike,
-  BehaviorSubject,
+  type Subscription,
   combineLatest,
   filter,
   map,
   of,
-  Subscription,
   switchMap,
 } from 'rxjs'
 
 import FamilySourceCache from '../helpers/FamilySourceCache'
 import switchExhaustAll from '../operators/switchExhaustAll'
-import type { Family, FamilyKey } from '../types'
+import type { FamilyKey, Readable, WritableFamily } from '../types'
 import { isEmpty, stringify } from '../utils'
-import DerivedSubscribable from './DerivedSubscribable'
+import DerivedReader from './DerivedReader'
+import DerivedWriter from './DerivedWriter'
+import Writer from './Writer'
 
-export class BehaviorMember<V, K extends FamilyKey>
-  extends DerivedSubscribable<V>
-  implements SubjectLike<V>
-{
-  #family: BehaviorFamily<V, K>
+class WriterMember<V, K extends FamilyKey> extends DerivedWriter<V> {
+  #family: WriterFamily<V, K>
   #key: K
 
-  constructor(family: BehaviorFamily<V, K>, key: K) {
+  constructor(family: WriterFamily<V, K>, key: K) {
     super()
     this.#family = family
     this.#key = key
@@ -42,28 +39,31 @@ export class BehaviorMember<V, K extends FamilyKey>
     this.#family.reset(this.#key)
   }
 
+  getValue(): V {
+    return this.#family.getValue(this.#key)
+  }
+
   protected _subscribe(subject: Observer<V>): Subscription {
     return this.#family.subscribe(this.#key, subject)
   }
 }
 
-type BehaviorRecord<V> = Record<string, BehaviorSubject<V>>
+type WriterRecord<V> = Record<string, Writer<V>>
 
-type BehaviorFamilyRecord<V> = Record<string, V>
+type WriterFamilyRecord<V> = Record<string, V>
 
-class BehaviorFamilySnap<V> extends DerivedSubscribable<
-  BehaviorFamilyRecord<V>
-> {
-  #store: BehaviorSubject<BehaviorRecord<V>>
+class FamilySnap<V>
+  extends DerivedReader<WriterFamilyRecord<V>>
+  implements Readable<WriterFamilyRecord<V>>
+{
+  #store: Writer<WriterRecord<V>>
 
-  constructor(store: BehaviorSubject<BehaviorRecord<V>>) {
+  constructor(store: Writer<WriterRecord<V>>) {
     super()
     this.#store = store
   }
 
-  protected _subscribe(
-    subject: Observer<BehaviorFamilyRecord<V>>,
-  ): Subscription {
+  protected _subscribe(subject: Observer<WriterFamilyRecord<V>>): Subscription {
     return this.#store
       .pipe(
         // combineLatest alone does not pipe when object is empty.
@@ -73,12 +73,14 @@ class BehaviorFamilySnap<V> extends DerivedSubscribable<
   }
 }
 
-class BehaviorFamily<V, K extends FamilyKey = string> implements Family<V, K> {
-  #store = new BehaviorSubject<BehaviorRecord<V>>({})
+class WriterFamily<V, K extends FamilyKey = string>
+  implements WritableFamily<V, K>
+{
+  #store = new Writer<WriterRecord<V>>({})
   #default: V
   #sourcesCache: FamilySourceCache<Observable<V>, K>
 
-  constructor(defaultValue: V, initial?: BehaviorFamilyRecord<V>) {
+  constructor(defaultValue: V, initial?: WriterFamilyRecord<V>) {
     this.#default = defaultValue
     this.#sourcesCache = new FamilySourceCache(
       (_, k) =>
@@ -87,10 +89,10 @@ class BehaviorFamily<V, K extends FamilyKey = string> implements Family<V, K> {
           filter(Boolean),
           switchExhaustAll(),
         ),
-      { connector: () => new BehaviorSubject(defaultValue) },
+      { connector: () => new Writer(defaultValue) },
     )
     if (initial) {
-      for (const [k, v] of Object.entries(initial)) this.set(k as K, v)
+      for (const [k, v] of Object.entries(initial)) this.next(k as K, v)
     }
   }
 
@@ -119,7 +121,7 @@ class BehaviorFamily<V, K extends FamilyKey = string> implements Family<V, K> {
     if (sub) {
       sub.next(value)
     } else {
-      data[k] = new BehaviorSubject(value)
+      data[k] = new Writer(value)
       this.#store.next(data)
     }
   }
@@ -132,12 +134,8 @@ class BehaviorFamily<V, K extends FamilyKey = string> implements Family<V, K> {
     else this.#store.error(err)
   }
 
-  set(key: K, value: V): void {
-    return this.next(key, value)
-  }
-
-  get(key: K): BehaviorMember<V, K> {
-    return new BehaviorMember(this, key)
+  get(key: K): WriterMember<V, K> {
+    return new WriterMember(this, key)
   }
 
   getValue(key: K): V {
@@ -150,9 +148,14 @@ class BehaviorFamily<V, K extends FamilyKey = string> implements Family<V, K> {
     this.#store.complete()
   }
 
-  snap(): BehaviorFamilySnap<V> {
-    return new BehaviorFamilySnap(this.#store)
+  snap(): FamilySnap<V> {
+    return new FamilySnap(this.#store)
   }
 }
 
-export default BehaviorFamily
+export const writableFamily = <V, K extends FamilyKey = string>(
+  defaultValue: V,
+  initial?: WriterFamilyRecord<V>,
+): WriterFamily<V, K> => new WriterFamily(defaultValue, initial)
+
+export default WriterFamily

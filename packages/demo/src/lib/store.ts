@@ -1,9 +1,8 @@
-import { BehaviorSubject } from 'rxjs'
-import { BehaviorFamily } from 'svorn'
+import { writable, writableFamily } from 'svorn'
 
-export const sheet = new BehaviorFamily<string | number>('', {
+export const sheet = writableFamily<string | number>('', {
   B2: '!',
 })
 
-export const currCol = new BehaviorSubject(1)
-export const currRow = new BehaviorSubject(0)
+export const currCol = writable(1)
+export const currRow = writable(0)
