@@ -9,6 +9,8 @@ import {
   switchMap,
 } from 'rxjs'
 
+import DerivedReader from '../helpers/DerivedReader'
+import DerivedWriter from '../helpers/DerivedWriter'
 import FamilySourceCache from '../helpers/FamilySourceCache'
 import switchExhaustAll from '../operators/switchExhaustAll'
 import type {
@@ -18,8 +20,6 @@ import type {
   WritableFamily,
 } from '../types'
 import { isEmpty, stringify } from '../utils'
-import DerivedReader from './DerivedReader'
-import DerivedWriter from './DerivedWriter'
 import Writer from './Writer'
 
 class WriterMember<V, K extends FamilyKey> extends DerivedWriter<V> {
