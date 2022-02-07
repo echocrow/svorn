@@ -8,6 +8,7 @@ import type { Readable } from '../types'
 
 abstract class DerivedReader<V> extends Observable<V> implements Readable<V> {
   constructor() {
+    // NOTE: This must be here to obscure Observable's constructor.
     super()
   }
 
