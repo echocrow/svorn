@@ -2,7 +2,6 @@ import type {
   Observer as RxObserver,
   SubjectLike as RxSubjectLike,
   Subscribable as RxSubscribable,
-  SubscriptionLike as RxSubscriptionLike,
   Unsubscribable as RxUnsubscribable,
 } from 'rxjs'
 import type {
@@ -14,12 +13,13 @@ interface RxBehaviorSubjectLike<T> extends RxSubjectLike<T> {
   getValue(): T
 }
 
+export type RxObserverOrNext<V> = Partial<RxObserver<V>> | ((value: V) => void)
+
 export interface Readable<V>
   extends RxSubscribable<V>,
     Omit<SvelteReadable<V>, 'subscribe'>,
     Omit<SvelteStore<V>, 'subscribe'> {
-  subscribe(observer: Partial<RxObserver<V>>): RxUnsubscribable
-  subscribe(next: (value: V) => void): RxUnsubscribable
+  subscribe(observerOrNext: RxObserverOrNext<V>): RxUnsubscribable
 }
 
 export interface Writable<V>
@@ -30,7 +30,7 @@ export interface Writable<V>
 export type FamilyKey = string | number | boolean | void | null
 
 export interface ReadableFamily<V, K extends FamilyKey> {
-  subscribe(key: K, observer: Partial<RxObserver<V>>): RxSubscriptionLike
+  subscribe(key: K, observerOrNext: RxObserverOrNext<V>): RxUnsubscribable
   get(key: K): Readable<V>
 }
 

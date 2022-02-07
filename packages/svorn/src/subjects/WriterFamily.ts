@@ -11,7 +11,12 @@ import {
 
 import FamilySourceCache from '../helpers/FamilySourceCache'
 import switchExhaustAll from '../operators/switchExhaustAll'
-import type { FamilyKey, Readable, WritableFamily } from '../types'
+import type {
+  FamilyKey,
+  Readable,
+  RxObserverOrNext,
+  WritableFamily,
+} from '../types'
 import { isEmpty, stringify } from '../utils'
 import DerivedReader from './DerivedReader'
 import DerivedWriter from './DerivedWriter'
@@ -96,8 +101,8 @@ class WriterFamily<V, K extends FamilyKey = string>
     }
   }
 
-  subscribe(key: K, observer: Partial<Observer<V>>): Subscription {
-    return this.#sourcesCache.subscribe(key, observer)
+  subscribe(key: K, observerOrNext: RxObserverOrNext<V>): Subscription {
+    return this.#sourcesCache.subscribe(key, observerOrNext)
   }
 
   reset(key: K): void {
