@@ -8,8 +8,8 @@ import {
   Subject,
 } from 'rxjs'
 
-import type { FamilyKey, RxObserverOrNext } from '../types'
-import { stringify } from '../utils'
+import type { FamilyKey, InteropObserver } from '../types'
+import { stringify, toRxObserver } from '../utils'
 
 interface FamilySourceCacheConfig<
   S extends Observable<unknown>,
@@ -51,7 +51,7 @@ class FamilySourceCache<S extends Observable<unknown>, K extends FamilyKey> {
 
   subscribe(
     key: K,
-    observerOrNext: RxObserverOrNext<ObservedValueOf<S>>,
+    observerOrNext: InteropObserver<ObservedValueOf<S>>,
   ): Subscription {
     const k = stringify(key)
     let cached = this.#cache[k]
@@ -71,10 +71,7 @@ class FamilySourceCache<S extends Observable<unknown>, K extends FamilyKey> {
     }
     const [source, subject] = cached
     this.#preSubscribe?.({ source: source, key, k, isFirst })
-    // TypeScript is struggling.
-    return typeof observerOrNext === 'function'
-      ? subject.subscribe(observerOrNext)
-      : subject.subscribe(observerOrNext)
+    return subject.subscribe(toRxObserver(observerOrNext))
   }
 }
 

@@ -15,8 +15,8 @@ import FamilySourceCache from '../helpers/FamilySourceCache'
 import switchExhaustAll from '../operators/switchExhaustAll'
 import type {
   FamilyKey,
+  InteropObserver,
   Readable,
-  RxObserverOrNext,
   WritableFamily,
 } from '../types'
 import { isEmpty, stringify } from '../utils'
@@ -101,7 +101,7 @@ class WriterFamily<V, K extends FamilyKey = string>
     }
   }
 
-  subscribe(key: K, observerOrNext: RxObserverOrNext<V>): Subscription {
+  subscribe(key: K, observerOrNext: InteropObserver<V>): Subscription {
     return this.#sourcesCache.subscribe(key, observerOrNext)
   }
 

@@ -13,13 +13,16 @@ interface RxBehaviorSubjectLike<T> extends RxSubjectLike<T> {
   getValue(): T
 }
 
-export type RxObserverOrNext<V> = Partial<RxObserver<V>> | ((value: V) => void)
+export type InteropObserver<V> =
+  | SvelteWritable<V>
+  | Partial<RxObserver<V>>
+  | ((value: V) => void)
 
 export interface Readable<V>
-  extends RxSubscribable<V>,
+  extends Omit<RxSubscribable<V>, 'subscribe'>,
     Omit<SvelteReadable<V>, 'subscribe'>,
     Omit<SvelteStore<V>, 'subscribe'> {
-  subscribe(observerOrNext: RxObserverOrNext<V>): RxUnsubscribable
+  subscribe(observer: InteropObserver<V>): RxUnsubscribable
 }
 
 export interface Writable<V>
@@ -30,7 +33,7 @@ export interface Writable<V>
 export type FamilyKey = string | number | boolean | void | null
 
 export interface ReadableFamily<V, K extends FamilyKey> {
-  subscribe(key: K, observerOrNext: RxObserverOrNext<V>): RxUnsubscribable
+  subscribe(key: K, observer: InteropObserver<V>): RxUnsubscribable
   get(key: K): Readable<V>
 }
 

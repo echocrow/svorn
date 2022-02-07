@@ -1,6 +1,11 @@
-import type { ObservedValueOf, Subscribable, Unsubscribable } from 'rxjs'
+import type {
+  ObservedValueOf,
+  Observer,
+  Subscribable,
+  Unsubscribable,
+} from 'rxjs'
 
-import type { FamilyKey } from './types'
+import type { FamilyKey, InteropObserver } from './types'
 
 export const isEmpty = (
   obj: Record<string | number | symbol, unknown> | Iterable<unknown>,
@@ -66,4 +71,16 @@ export const stringify = (key: FamilyKey): string => {
   }
   if (key === null) return 'null'
   throw new Error('Invalid key type used as Behavior Family key')
+}
+
+export const toRxObserver = <V>(
+  observerOrNext?: InteropObserver<V> | null,
+): Partial<Observer<V>> => {
+  // Next callback.
+  if (typeof observerOrNext === 'function') return { next: observerOrNext }
+  // Svelte "writable" interop.
+  if (observerOrNext && !('next' in observerOrNext) && 'set' in observerOrNext)
+    return { next: (v) => observerOrNext.set(v) }
+  // Misc observers.
+  return observerOrNext ?? {}
 }
