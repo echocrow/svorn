@@ -110,9 +110,9 @@ class WriterFamily<V, K extends FamilyKey = string>
     const data = this.#store.getValue()
     const sub = data[k]
     if (sub) {
-      sub.next(this.#default)
       delete data[k]
       this.#store.next(data)
+      sub.next(this.#default)
       sub.complete()
     }
   }
