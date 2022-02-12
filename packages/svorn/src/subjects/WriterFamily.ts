@@ -38,11 +38,11 @@ class WriterMember<V, K extends FamilyKey> extends DerivedWriter<V> {
   }
 
   error(err: unknown) {
-    this.#family.error(this.#key, err)
+    this.#family.error(err)
   }
 
   complete() {
-    this.#family.reset(this.#key)
+    this.#family.complete()
   }
 
   getValue(): V {
@@ -131,14 +131,6 @@ class WriterFamily<V, K extends FamilyKey = string>
     }
   }
 
-  error(key: K, err: unknown): void {
-    const k = stringify(key)
-    const data = this.#store.getValue()
-    const sub = data[k]
-    if (sub) sub.error(err)
-    else this.#store.error(err)
-  }
-
   get(key: K): WriterMember<V, K> {
     return new WriterMember(this, key)
   }
@@ -149,8 +141,15 @@ class WriterFamily<V, K extends FamilyKey = string>
   }
 
   complete(): void {
-    for (const k of Object.keys(this.#store)) this.reset(k as K)
     this.#store.complete()
+    const data = this.#store.getValue()
+    for (const sub of Object.values(data)) sub.complete()
+  }
+
+  error(err: unknown): void {
+    const data = this.#store.getValue()
+    for (const sub of Object.values(data)) sub.error(err)
+    this.#store.error(err)
   }
 
   snap(): FamilySnap<V> {
