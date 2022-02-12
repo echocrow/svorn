@@ -12,6 +12,7 @@
   "homepage": "https://github.com/echocrow/svorn#readme",
   "private": true,
   "scripts": {
+    "test": "pnpm run test -r",
     "dev": "pnpm run dev -r",
     "lint": "eslint --ignore-path .gitignore . && prettier --check --plugin-search-dir=. .",
     "format": "eslint --fix --ignore-path .gitignore . && prettier --write --plugin-search-dir=. ."
