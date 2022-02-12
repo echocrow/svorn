@@ -2,17 +2,15 @@ import {
   type Observable,
   type Observer,
   type Subscription,
-  combineLatest,
   filter,
   map,
-  of,
-  switchMap,
 } from 'rxjs'
 
 import DerivedReader from '../helpers/DerivedReader'
 import DerivedWriter from '../helpers/DerivedWriter'
 import FamilySourceCache from '../helpers/FamilySourceCache'
 import defaultWith from '../operators/defaultWith'
+import switchCombineLatest from '../operators/switchCombineLatest'
 import switchExhaustAll from '../operators/switchExhaustAll'
 import type {
   FamilyKey,
@@ -20,7 +18,7 @@ import type {
   WritableFamily,
   WriterFamilyRecord,
 } from '../types'
-import { isEmpty, stringify } from '../utils'
+import { stringify } from '../utils'
 import Writer from './Writer'
 
 class WriterMember<V, K extends FamilyKey> extends DerivedWriter<V> {
@@ -81,11 +79,7 @@ class WriterFamily<V, K extends FamilyKey = string>
   protected _subscribe(
     subscriber: Observer<WriterFamilyRecord<V>>,
   ): Subscription {
-    const snap = this.#store.pipe(
-      // combineLatest alone does not pipe when object is empty.
-      switchMap((s) => (isEmpty(s) ? of({}) : combineLatest(s))),
-    )
-    return snap.subscribe(subscriber)
+    return this.#store.pipe(switchCombineLatest()).subscribe(subscriber)
   }
 
   subscribeTo(key: K, observerOrNext: InteropObserver<V>): Subscription {
