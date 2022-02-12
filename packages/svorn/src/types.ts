@@ -32,16 +32,18 @@ export interface Writable<V>
 
 export type FamilyKey = string | number | boolean | void | null
 
-export interface ReadableFamily<V, K extends FamilyKey> {
-  subscribe(key: K, observer: InteropObserver<V>): RxUnsubscribable
+export type WriterFamilyRecord<V> = Record<string, V>
+
+export interface ReadableFamily<V, K extends FamilyKey>
+  extends Readable<WriterFamilyRecord<V>> {
+  subscribeTo(key: K, observer: InteropObserver<V>): RxUnsubscribable
   get(key: K): Readable<V>
 }
 
 export interface WritableFamily<V, K extends FamilyKey>
   extends ReadableFamily<V, K> {
   get(key: K): Writable<V>
-  getValue(key: K): V
   next: (key: K, value: V) => void
-  error: (key: K, err: unknown) => void
   complete: () => void
+  error: (err: unknown) => void
 }

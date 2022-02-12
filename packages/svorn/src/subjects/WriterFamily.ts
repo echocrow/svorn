@@ -17,8 +17,8 @@ import switchExhaustAll from '../operators/switchExhaustAll'
 import type {
   FamilyKey,
   InteropObserver,
-  Readable,
   WritableFamily,
+  WriterFamilyRecord,
 } from '../types'
 import { isEmpty, stringify } from '../utils'
 import Writer from './Writer'
@@ -50,43 +50,20 @@ class WriterMember<V, K extends FamilyKey> extends DerivedWriter<V> {
   }
 
   protected _subscribe(subject: Observer<V>): Subscription {
-    return this.#family.subscribe(this.#key, subject)
-  }
-}
-
-type WriterRecord<V> = Record<string, Writer<V>>
-
-type WriterFamilyRecord<V> = Record<string, V>
-
-class FamilySnap<V>
-  extends DerivedReader<WriterFamilyRecord<V>>
-  implements Readable<WriterFamilyRecord<V>>
-{
-  #store: Writer<WriterRecord<V>>
-
-  constructor(store: Writer<WriterRecord<V>>) {
-    super()
-    this.#store = store
-  }
-
-  protected _subscribe(subject: Observer<WriterFamilyRecord<V>>): Subscription {
-    return this.#store
-      .pipe(
-        // combineLatest alone does not pipe when object is empty.
-        switchMap((s) => (isEmpty(s) ? of({}) : combineLatest(s))),
-      )
-      .subscribe(subject)
+    return this.#family.subscribeTo(this.#key, subject)
   }
 }
 
 class WriterFamily<V, K extends FamilyKey = string>
+  extends DerivedReader<WriterFamilyRecord<V>>
   implements WritableFamily<V, K>
 {
-  #store = new Writer<WriterRecord<V>>({})
+  #store = new Writer<Record<string, Writer<V>>>({})
   #default: V
   #sourcesCache: FamilySourceCache<Observable<V>, K>
 
   constructor(defaultValue: V, initial?: WriterFamilyRecord<V>) {
+    super()
     this.#default = defaultValue
     this.#sourcesCache = new FamilySourceCache((_, k) =>
       this.#store.pipe(
@@ -101,7 +78,17 @@ class WriterFamily<V, K extends FamilyKey = string>
     }
   }
 
-  subscribe(key: K, observerOrNext: InteropObserver<V>): Subscription {
+  protected _subscribe(
+    subscriber: Observer<WriterFamilyRecord<V>>,
+  ): Subscription {
+    const snap = this.#store.pipe(
+      // combineLatest alone does not pipe when object is empty.
+      switchMap((s) => (isEmpty(s) ? of({}) : combineLatest(s))),
+    )
+    return snap.subscribe(subscriber)
+  }
+
+  subscribeTo(key: K, observerOrNext: InteropObserver<V>): Subscription {
     return this.#sourcesCache.subscribe(key, observerOrNext)
   }
 
@@ -150,10 +137,6 @@ class WriterFamily<V, K extends FamilyKey = string>
     const data = this.#store.getValue()
     for (const sub of Object.values(data)) sub.error(err)
     this.#store.error(err)
-  }
-
-  snap(): FamilySnap<V> {
-    return new FamilySnap(this.#store)
   }
 }
 
