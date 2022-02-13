@@ -15,6 +15,7 @@
     "checkJs": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "composite": true
+    "composite": true,
+    "noEmit": true
   }
 }
