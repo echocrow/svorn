@@ -13,7 +13,7 @@ const defaultWith =
         error: (e) => subscriber.error(e),
         complete: () => subscriber.complete(),
       })
-      if (!fired) subscriber.next(def)
+      if (!fired && !subscription.closed) subscriber.next(def)
       return subscription
     })
 
