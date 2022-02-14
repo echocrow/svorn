@@ -1,11 +1,8 @@
 import {
   type Observable,
   type ObservedValueOf,
-  type SubjectLike,
   type Subscription,
   finalize,
-  share,
-  Subject,
 } from 'rxjs'
 
 import type { FamilyKey, InteropObserver } from '../types'
@@ -15,7 +12,6 @@ interface FamilySourceCacheConfig<
   S extends Observable<unknown>,
   K extends FamilyKey,
 > {
-  connector?: () => SubjectLike<ObservedValueOf<S>>
   preSubscribe?: (connection: {
     source: S
     key: K
@@ -31,22 +27,14 @@ class FamilySourceCache<S extends Observable<unknown>, K extends FamilyKey> {
 
   #source: (key: K, k: string) => S
 
-  #connector: NonNullable<FamilySourceCacheConfig<S, K>['connector']>
-  #preSubscribe?: FamilySourceCacheConfig<S, K>['preSubscribe']
-  #finalize?: FamilySourceCacheConfig<S, K>['finalize']
+  #options: FamilySourceCacheConfig<S, K>
 
   constructor(
     source: (key: K, k: string) => S,
-    {
-      connector = () => new Subject<ObservedValueOf<S>>(),
-      preSubscribe,
-      finalize,
-    }: FamilySourceCacheConfig<S, K>,
+    options: FamilySourceCacheConfig<S, K> = {},
   ) {
     this.#source = source
-    this.#connector = connector
-    this.#preSubscribe = preSubscribe
-    this.#finalize = finalize
+    this.#options = options
   }
 
   subscribe(
@@ -63,14 +51,13 @@ class FamilySourceCache<S extends Observable<unknown>, K extends FamilyKey> {
         (src as Observable<ObservedValueOf<S>>).pipe(
           finalize(() => {
             delete this.#cache[k]
-            this.#finalize?.(key, k)
+            this.#options.finalize?.(key, k)
           }),
-          share({ connector: this.#connector }),
         ),
       ]
     }
     const [source, subject] = cached
-    this.#preSubscribe?.({ source: source, key, k, isFirst })
+    this.#options.preSubscribe?.({ source: source, key, k, isFirst })
     return subject.subscribe(toRxObserver(observerOrNext))
   }
 }

@@ -12,6 +12,7 @@ import {
 import DerivedReader from '../helpers/DerivedReader'
 import DerivedWriter from '../helpers/DerivedWriter'
 import FamilySourceCache from '../helpers/FamilySourceCache'
+import defaultWith from '../operators/defaultWith'
 import switchExhaustAll from '../operators/switchExhaustAll'
 import type {
   FamilyKey,
@@ -87,14 +88,13 @@ class WriterFamily<V, K extends FamilyKey = string>
 
   constructor(defaultValue: V, initial?: WriterFamilyRecord<V>) {
     this.#default = defaultValue
-    this.#sourcesCache = new FamilySourceCache(
-      (_, k) =>
-        this.#store.pipe(
-          map((v) => v[k]),
-          filter(Boolean),
-          switchExhaustAll(),
-        ),
-      { connector: () => new Writer(defaultValue) },
+    this.#sourcesCache = new FamilySourceCache((_, k) =>
+      this.#store.pipe(
+        map((v) => v[k]),
+        filter(Boolean),
+        switchExhaustAll(),
+        defaultWith(defaultValue),
+      ),
     )
     if (initial) {
       for (const [k, v] of Object.entries(initial)) this.next(k as K, v)
