@@ -1,4 +1,10 @@
-import { type Observable, type Observer, BehaviorSubject } from 'rxjs'
+import {
+  type Observable,
+  type ObservableNotification,
+  type Observer,
+  BehaviorSubject,
+  config as rxConfig,
+} from 'rxjs'
 import { type RunHelpers, TestScheduler } from 'rxjs/testing'
 import type { Readable, Writable } from 'src/types'
 import { writable as svelteWritable } from 'svelte/store'
@@ -10,7 +16,24 @@ export const runTestScheduler = (runner: (helpers: RunHelpers) => void) => {
   const ts = new TestScheduler((actual, expected) =>
     expect(actual).toEqual(expected),
   )
-  return ts.run(runner)
+  return ts.run((helpers) => {
+    const { flush } = helpers
+
+    const orgConfig = {
+      onStoppedNotification: rxConfig.onStoppedNotification,
+    }
+    const stoppedNotifications: ObservableNotification<unknown>[] = []
+    rxConfig.onStoppedNotification = (n) => stoppedNotifications.push(n)
+
+    runner(helpers)
+
+    flush()
+
+    // Expect no extraneous stopped notifications.
+    expect(stoppedNotifications).toHaveLength(0)
+
+    rxConfig.onStoppedNotification = orgConfig.onStoppedNotification
+  })
 }
 
 export const describeReadable = (
