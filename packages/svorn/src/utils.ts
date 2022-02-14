@@ -3,7 +3,7 @@ import type { Observer } from 'rxjs'
 import type { FamilyKey, InteropObserver } from './types'
 
 export const isEmpty = (
-  obj: Record<string | number | symbol, unknown> | Iterable<unknown>,
+  obj: Record<string | number | symbol, unknown> | Array<unknown>,
 ): boolean => {
   for (const _ in obj) return false
   return true
