@@ -38,6 +38,10 @@ export const runTestScheduler = (runner: (helpers: RunHelpers) => void) => {
 
 export const describeReadable = (
   setup: () => [ReadObservable<string>, Observer<string>],
+  options: {
+    skipCompletion?: boolean
+    skipError?: boolean
+  } = {},
 ) =>
   describe('Readable', () => {
     let r: ReadObservable<string>
@@ -52,12 +56,14 @@ export const describeReadable = (
     }
 
     it('emits values', () => expectSrcMimic('ab-c--'))
-
-    it('emits completion', () => expectSrcMimic('|'))
-    it('emits completion after value', () => expectSrcMimic('a-|'))
-
-    it('emits error', () => expectSrcMimic('#'))
-    it('emits error after value', () => expectSrcMimic('a-#'))
+    if (!options.skipCompletion) {
+      it('emits completion', () => expectSrcMimic('|'))
+      it('emits completion after value', () => expectSrcMimic('a-|'))
+    }
+    if (!options.skipError) {
+      it('emits error', () => expectSrcMimic('#'))
+      it('emits error after value', () => expectSrcMimic('a-#'))
+    }
 
     it('shares latest value', () => {
       s.next('0')
@@ -87,24 +93,28 @@ export const describeReadable = (
           expectObservable(bucket).toBe(want)
         })
       })
-      it('signals complete to observer', () => {
-        runTestScheduler(({ cold, expectObservable }) => {
-          const src = 'a-|'
-          const want = src
-          r.subscribe(bucket)
-          cold(src).subscribe(s)
-          expectObservable(bucket).toBe(want)
+      if (!options.skipCompletion) {
+        it('signals complete to observer', () => {
+          runTestScheduler(({ cold, expectObservable }) => {
+            const src = 'a-|'
+            const want = src
+            r.subscribe(bucket)
+            cold(src).subscribe(s)
+            expectObservable(bucket).toBe(want)
+          })
         })
-      })
-      it('signals error to observer', () => {
-        runTestScheduler(({ cold, expectObservable }) => {
-          const src = 'a-#'
-          const want = src
-          r.subscribe(bucket)
-          cold(src).subscribe(s)
-          expectObservable(bucket).toBe(want)
+      }
+      if (!options.skipError) {
+        it('signals error to observer', () => {
+          runTestScheduler(({ cold, expectObservable }) => {
+            const src = 'a-#'
+            const want = src
+            r.subscribe(bucket)
+            cold(src).subscribe(s)
+            expectObservable(bucket).toBe(want)
+          })
         })
-      })
+      }
 
       it('emits values to Svelte writable', () => {
         runTestScheduler(({ cold, expectObservable }) => {
