@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import {
   type Observable,
   type ObservableNotification,
