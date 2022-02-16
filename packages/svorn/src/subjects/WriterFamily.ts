@@ -1,6 +1,6 @@
 import {
   type Observable,
-  type Observer,
+  type Subscriber,
   type Subscription,
   filter,
   map,
@@ -47,7 +47,7 @@ class WriterMember<V, K extends FamilyKey> extends DerivedWriter<V> {
     return this.#family.getValue(this.#key)
   }
 
-  protected _subscribe(subject: Observer<V>): Subscription {
+  protected _subscribe(subject: Subscriber<V>): Subscription {
     return this.#family.subscribeTo(this.#key, subject)
   }
 }
@@ -77,7 +77,7 @@ class WriterFamily<V, K extends FamilyKey = string>
   }
 
   protected _subscribe(
-    subscriber: Observer<WriterFamilyRecord<V>>,
+    subscriber: Subscriber<WriterFamilyRecord<V>>,
   ): Subscription {
     return this.#store.pipe(switchCombineLatest()).subscribe(subscriber)
   }
