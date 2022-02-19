@@ -5,13 +5,11 @@ type WriterMember = ReturnType<WriterFamily<string, string>['get']>
 
 const describeWriterMember = ({
   getFamily,
-  getMember,
   memberKey,
   latestValue,
   defaultValue,
 }: {
   getFamily: () => WriterFamily<string>
-  getMember: () => WriterMember
   memberKey: string
   latestValue: string
   defaultValue: string
@@ -21,7 +19,7 @@ const describeWriterMember = ({
     let wm: WriterMember
     beforeEach(() => {
       wf = getFamily()
-      wm = getMember()
+      wm = wf.get(memberKey)
     })
 
     it('synchronously emits latest value', () => {
@@ -138,7 +136,6 @@ describe('WriterFamily', () => {
 
     describeWriterMember({
       getFamily: () => wf,
-      getMember: () => wm,
       memberKey: 'a',
       latestValue: '1',
       defaultValue: '__DEFAULT__',
@@ -151,7 +148,6 @@ describe('WriterFamily', () => {
 
     describeWriterMember({
       getFamily: () => wf,
-      getMember: () => wm,
       memberKey: 'notfound',
       latestValue: '__DEFAULT__',
       defaultValue: '__DEFAULT__',
