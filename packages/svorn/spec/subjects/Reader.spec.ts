@@ -5,7 +5,7 @@ import Reader, { readable } from 'src/subjects/Reader'
 const noop = () => {} // eslint-disable-line @typescript-eslint/no-empty-function
 
 describe('Reader', () => {
-  test.each(['', '0', 0, 123, true, 'def'] as const)(
+  it.each(['', '0', 0, 123, true, 'def'] as const)(
     'emits initial value synchronously (%j)',
     (v) => {
       runTestScheduler(({ expectObservable }) => {
@@ -113,7 +113,7 @@ describe('readable', () => {
     expect(readable('0', noop)).toBeInstanceOf(Reader)
   })
 
-  test.each(['', '0', 123, true])('keeps initial value (%j)', (v) => {
+  it.each(['', '0', 123, true])('keeps initial value (%j)', (v) => {
     runTestScheduler(({ expectObservable }) => {
       expectObservable(new Reader(v, noop)).toBe('d', { d: v })
     })

@@ -3,25 +3,25 @@ import { isEmpty, stringify, toRxObserver } from 'src/utils'
 import type { Writable as SvelteWritable } from 'svelte/store'
 
 describe('isEmpty', () => {
-  test.each([{ key: 'value' }, { '': '' }, [0]])(
+  it.each([{ key: 'value' }, { '': '' }, [0]])(
     'detects non-empty objects (%j)',
     (o) => expect(isEmpty(o)).toBe(false),
   )
 
-  test.each([{}, []])('detects empty objects (%j)', (o) =>
+  it.each([{}, []])('detects empty objects (%j)', (o) =>
     expect(isEmpty(o)).toBe(true),
   )
 })
 
 describe('stringify', () => {
-  test.each(['', '0', 'a', 'foobar', '123'])(
+  it.each(['', '0', 'a', 'foobar', '123'])(
     'keeps strings as is ("%s")',
     (s) => {
       expect(stringify(s)).toBe(s)
     },
   )
 
-  test.each([
+  it.each([
     [0, '0'],
     [1, '1'],
     [42, '42'],
@@ -33,7 +33,7 @@ describe('stringify', () => {
     expect(stringify(n)).toBe(s)
   })
 
-  test.each([
+  it.each([
     [true, 'true'],
     [false, 'false'],
   ])('casts booleans (%s)', (b, s) => {
@@ -98,7 +98,7 @@ describe('toRxObserver', () => {
     expect(got).toBe(observer)
   })
 
-  test.each([null, undefined])(
+  it.each([null, undefined])(
     'casts null/undefined to empty observer (%s)',
     (empty) => expect(toRxObserver(empty)).toEqual({}),
   )

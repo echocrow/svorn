@@ -195,7 +195,7 @@ describe('writableFamily', () => {
     expect(writableFamily('')).toBeInstanceOf(WriterFamily)
   })
 
-  test.each(['', '0', 123, true])('keeps initial value (%j)', (v) => {
+  it.each(['', '0', 123, true])('keeps initial value (%j)', (v) => {
     expect(writableFamily(v).get('notfound').getValue()).toBe(v)
   })
 
