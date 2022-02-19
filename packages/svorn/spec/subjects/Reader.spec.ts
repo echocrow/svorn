@@ -24,19 +24,30 @@ describe('Reader', () => {
         })
         return [r, s]
       },
-      { skipCompletion: true, skipError: true },
+      {
+        defaultValue: '__DEFAULT__',
+        latestValue: '__BUCKET-DEFAULT__',
+        skipCompletion: true,
+        skipError: true,
+      },
     )
   })
 
   describe('with set object', () => {
-    describeReadable(() => {
-      const s = new BehaviorSubject('__BUCKET-DEFAULT__')
-      const r = new Reader('__DEFAULT__', ({ next, error, complete }) => {
-        const sub = s.subscribe({ next, error, complete })
-        return () => sub.unsubscribe()
-      })
-      return [r, s]
-    })
+    describeReadable(
+      () => {
+        const s = new BehaviorSubject('__BUCKET-DEFAULT__')
+        const r = new Reader('__DEFAULT__', ({ next, error, complete }) => {
+          const sub = s.subscribe({ next, error, complete })
+          return () => sub.unsubscribe()
+        })
+        return [r, s]
+      },
+      {
+        defaultValue: '__DEFAULT__',
+        latestValue: '__BUCKET-DEFAULT__',
+      },
+    )
   })
 
   it('only calls set on first new subscription', () => {

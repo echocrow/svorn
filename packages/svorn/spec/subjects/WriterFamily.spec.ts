@@ -111,7 +111,7 @@ const describeWriterMember = ({
       })
     })
 
-    describeWritable(() => wm)
+    describeWritable(() => wm, { defaultValue, latestValue })
   })
 
 describe('WriterFamily', () => {

@@ -41,6 +41,8 @@ export const runTestScheduler = (runner: (helpers: RunHelpers) => void) => {
 export const describeReadable = (
   setup: () => [ReadObservable<string>, Observer<string>],
   options: {
+    defaultValue?: string
+    latestValue?: string
     skipCompletion?: boolean
     skipError?: boolean
   } = {},
@@ -50,20 +52,44 @@ export const describeReadable = (
     let s: Observer<string>
     beforeEach(() => ([r, s] = setup()))
 
-    const expectSrcMimic = (src: string, want: string = src) => {
+    const { defaultValue, latestValue = defaultValue } = options
+
+    if (latestValue !== undefined) {
+      it('emits latest value immediately', () => {
+        runTestScheduler(({ expectObservable }) => {
+          expectObservable(r).toBe('D', { D: latestValue })
+        })
+      })
+    }
+
+    const expectSrcMimic = (
+      src: string,
+      want: string = src,
+      wantValues?: Record<string, string>,
+    ) => {
       runTestScheduler(({ cold, expectObservable }) => {
         cold(src).subscribe(s)
-        expectObservable(r).toBe(want)
+        expectObservable(r).toBe(want, wantValues)
       })
     }
 
     it('emits values', () => expectSrcMimic('ab-c--'))
     if (!options.skipCompletion) {
-      it('emits completion', () => expectSrcMimic('|'))
+      if (defaultValue !== undefined) {
+        it('emits default value before immediate completion', () =>
+          expectSrcMimic('|', '(D|)', { D: defaultValue }))
+      } else {
+        it('emits completion', () => expectSrcMimic('|'))
+      }
       it('emits completion after value', () => expectSrcMimic('a-|'))
     }
     if (!options.skipError) {
-      it('emits error', () => expectSrcMimic('#'))
+      if (defaultValue !== undefined) {
+        it('emits default value before immediate error', () =>
+          expectSrcMimic('#', '(D#)', { D: defaultValue }))
+      } else {
+        it('emits error', () => expectSrcMimic('#'))
+      }
       it('emits error after value', () => expectSrcMimic('a-#'))
     }
 
@@ -134,12 +160,18 @@ export const describeReadable = (
     })
   })
 
-export const describeWritable = (newWritable: () => WriteObservable<string>) =>
+export const describeWritable = (
+  newWritable: () => WriteObservable<string>,
+  options: {
+    defaultValue?: string
+    latestValue?: string
+  } = {},
+) =>
   describe('Writable', () => {
     describeReadable(() => {
       const w = newWritable()
       return [w, w]
-    })
+    }, options)
 
     let w: WriteObservable<string>
     beforeEach(() => (w = newWritable()))

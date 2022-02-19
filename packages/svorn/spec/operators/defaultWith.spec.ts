@@ -1,4 +1,10 @@
-import { BehaviorSubject, from, Observable } from 'rxjs'
+import {
+  BehaviorSubject,
+  from,
+  Observable,
+  Subscription,
+  throwError,
+} from 'rxjs'
 import { runTestScheduler } from 'spec/helpers'
 import defaultWith from 'src/operators/defaultWith'
 
@@ -43,13 +49,30 @@ describe('defaultWith', () => {
     })
   })
 
-  it('does not emit when subscription was closed', () => {
-    runTestScheduler(() => {
-      // Extra notifications are checked by runTestScheduler().
+  it('emits default before instant completion', () => {
+    runTestScheduler(({ expectObservable }) => {
       const o = from([]).pipe(defaultWith('D'))
-      const bucket = new BehaviorSubject('0')
-      o.subscribe(bucket)
-      expect(bucket.getValue()).toBe('0')
+      expectObservable(o).toBe('(D|)')
+    })
+  })
+
+  it('emits default before instant error', () => {
+    runTestScheduler(({ expectObservable }) => {
+      const o = throwError(() => 'error').pipe(defaultWith('D'))
+      expectObservable(o).toBe('(D#)')
+    })
+  })
+
+  it('does not emit when subscriber is already closed', () => {
+    runTestScheduler(({ cold, expectObservable }) => {
+      const s = cold('')
+      s.subscribe = () => {
+        const sub = new Subscription()
+        sub.unsubscribe()
+        return sub
+      }
+      const o = s.pipe(defaultWith('D'))
+      expectObservable(o).toBe('')
     })
   })
 })

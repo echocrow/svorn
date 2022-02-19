@@ -1,19 +1,32 @@
-import { type Subscriber, Observable } from 'rxjs'
+import { type Subscriber, Observable, Subscription } from 'rxjs'
 
 const defaultWith =
   <T>(def: T) =>
   (source: Observable<T>): Observable<T> =>
     new Observable((subscriber: Subscriber<T>) => {
+      let subscription: Subscription | undefined = undefined
       let fired = false
-      const subscription = source.subscribe({
+      const sendDefault = () => {
+        if (fired) return
+        if (subscription && subscription.closed) return
+        fired = true
+        subscriber.next(def)
+      }
+      subscription = source.subscribe({
         next: (v) => {
           fired = true
           subscriber.next(v)
         },
-        error: (e) => subscriber.error(e),
-        complete: () => subscriber.complete(),
+        error: (e) => {
+          sendDefault()
+          subscriber.error(e)
+        },
+        complete: () => {
+          sendDefault()
+          subscriber.complete()
+        },
       })
-      if (!fired && !subscription.closed) subscriber.next(def)
+      sendDefault()
       return subscription
     })
 
