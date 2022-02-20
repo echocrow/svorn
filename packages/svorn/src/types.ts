@@ -20,8 +20,7 @@ export type InteropObserver<V> =
 
 export interface Readable<V>
   extends Omit<RxSubscribable<V>, 'subscribe'>,
-    Omit<SvelteReadable<V>, 'subscribe'>,
-    Omit<SvelteStore<V>, 'subscribe'> {
+    Omit<SvelteReadable<V>, 'subscribe'> {
   subscribe(observer: InteropObserver<V>): RxUnsubscribable
 }
 
