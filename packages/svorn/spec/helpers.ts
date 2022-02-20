@@ -14,6 +14,8 @@ import { writable as svelteWritable } from 'svelte/store'
 type ReadObservable<V> = Readable<V> & Observable<V>
 type WriteObservable<V> = Writable<V> & Observable<V>
 
+export const noop = () => {} // eslint-disable-line @typescript-eslint/no-empty-function
+
 export const runTestScheduler = (runner: (helpers: RunHelpers) => void) => {
   const ts = new TestScheduler((actual, expected) =>
     expect(actual).toEqual(expected),

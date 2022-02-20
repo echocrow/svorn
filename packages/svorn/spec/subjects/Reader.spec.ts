@@ -1,8 +1,6 @@
 import { BehaviorSubject } from 'rxjs'
-import { describeReadable, runTestScheduler } from 'spec/helpers'
+import { describeReadable, noop, runTestScheduler } from 'spec/helpers'
 import Reader, { readable } from 'src/subjects/Reader'
-
-const noop = () => {} // eslint-disable-line @typescript-eslint/no-empty-function
 
 describe('Reader', () => {
   it.each(['', '0', 0, 123, true, 'def'] as const)(

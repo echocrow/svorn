@@ -1,8 +1,6 @@
 import { BehaviorSubject, from, Subject, Subscribable } from 'rxjs'
-import { describeReadable, runTestScheduler } from 'spec/helpers'
+import { describeReadable, noop, runTestScheduler } from 'spec/helpers'
 import Deriver, { derived } from 'src/subjects/Deriver'
-
-const noop = () => {} // eslint-disable-line @typescript-eslint/no-empty-function
 
 describe('Deriver', () => {
   it.each(['', '0', 0, 123, true, 'def'] as const)(
