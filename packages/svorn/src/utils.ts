@@ -2,6 +2,8 @@ import type { Observer } from 'rxjs'
 
 import type { FamilyKey, InteropObserver } from './types'
 
+export const noop = () => {} // eslint-disable-line @typescript-eslint/no-empty-function
+
 export const isEmpty = (
   obj: Record<string | number | symbol, unknown> | Array<unknown>,
 ): boolean => {
