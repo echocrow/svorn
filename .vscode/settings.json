@@ -6,5 +6,5 @@
   },
   "eslint.probe": ["svelte"],
   "eslint.validate": ["javascript", "typescript", "svelte"],
-  "cSpell.words": ["svorn", "Unsubscribable", "Unsubscriber"]
+  "cSpell.words": ["Readables", "svorn", "Unsubscribable", "Unsubscriber"]
 }
