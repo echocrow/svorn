@@ -3,11 +3,11 @@
   import { onMount } from 'svelte'
 
   import { nameCell } from '$lib/cells'
-  import { derivedSheet, sheet } from '$lib/store'
+  import { sheet } from '$lib/store'
 
   export let row: number
   export let col: number
-  export let src: typeof sheet | typeof derivedSheet = sheet
+  export let src: typeof sheet = sheet
 
   const name = nameCell(row, col)
   const val = src.get(name)
@@ -19,7 +19,7 @@
     onMount(() => {
       const timer = interval(1000)
       const sub = timer.subscribe(() =>
-        sheet.set(name, inc(sheet.getValue(name))),
+        sheet.next(name, inc(sheet.getValue(name))),
       )
       return () => sub.unsubscribe()
     })
