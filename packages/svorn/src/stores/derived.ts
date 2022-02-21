@@ -1,4 +1,5 @@
 import {
+  type Observer,
   type Subscribable,
   type Subscriber,
   type Unsubscribable,
@@ -9,8 +10,9 @@ import {
 } from 'rxjs'
 
 import DerivedReader from '../helpers/DerivedReader'
+import DerivedWriter from '../helpers/DerivedWriter'
 import defaultWith from '../operators/defaultWith'
-import type { Readable } from '../types'
+import type { Readable, Writable } from '../types'
 
 type ReadableInterop<V> = Readable<V> | Subscribable<V>
 
@@ -104,21 +106,128 @@ export class Deriver<S extends Readables, V>
   }
 }
 
+interface WriteDeriverSyncBehavior<S extends Readables, V>
+  extends Partial<Observer<V>> {
+  then: DeriverSyncThen<S, V>
+}
+interface WriteDeriverAsyncBehavior<S extends Readables, V>
+  extends Partial<Observer<V>> {
+  then: DeriverAsyncThen<S, V>
+}
+interface WriteDeriverBehavior<S extends Readables, V>
+  extends Partial<Observer<V>> {
+  then: DeriverThen<S, V>
+}
+
+export class WriteDeriver<S extends Readables, V>
+  extends DerivedWriter<V>
+  implements Writable<V>
+{
+  #src: Deriver<S, V>
+  #next: Observer<V>['next'] | undefined
+  #error: Observer<V>['error'] | undefined
+  #complete: Observer<V>['complete'] | undefined
+
+  constructor(
+    source: S,
+    behavior: WriteDeriverSyncBehavior<S, V>,
+    initialValue?: V,
+  )
+  constructor(
+    source: S,
+    behavior: WriteDeriverAsyncBehavior<S, V>,
+    initialValue?: V,
+  )
+  constructor(source: S, behavior: WriteDeriverBehavior<S, V>, initialValue?: V)
+  constructor(
+    source: S,
+    behavior: WriteDeriverBehavior<S, V>,
+    initialValue?: V,
+  ) {
+    super()
+    this.#src =
+      arguments.length <= 2
+        ? new Deriver(source, behavior.then)
+        : new Deriver(source, behavior.then, initialValue)
+    this.#next = behavior.next
+    this.#error = behavior.error
+    this.#complete = behavior.complete
+  }
+
+  protected _subscribe(subscriber: Subscriber<V>): Subscription {
+    return this.#src.subscribe(subscriber)
+  }
+
+  next(value: V): void {
+    if (!this.#next) throw new TypeError('next is not implemented')
+    this.#next?.(value)
+  }
+
+  error(err: unknown): void {
+    if (!this.#error) throw err
+    this.#error(err)
+  }
+
+  complete(): void {
+    if (!this.#complete) throw new TypeError('complete is not implemented')
+    this.#complete()
+  }
+}
+
+type DerivedOptions<S extends Readables, V> =
+  | DeriverThen<S, V>
+  | WriteDeriverBehavior<S, V>
+
+function derived<S extends Readables, V>(
+  source: S,
+  behavior: WriteDeriverAsyncBehavior<S, V>,
+  initialValue?: V,
+): WriteDeriver<S, V>
+
+function derived<S extends Readables, V>(
+  source: S,
+  behavior: WriteDeriverSyncBehavior<S, V>,
+  initialValue?: V,
+): WriteDeriver<S, V>
+
+function derived<S extends Readables, V>(
+  source: S,
+  behavior: WriteDeriverBehavior<S, V>,
+  initialValue?: V,
+): WriteDeriver<S, V>
+
 function derived<S extends Readables, V>(
   source: S,
   then: DeriverAsyncThen<S, V>,
   initialValue?: V,
 ): Deriver<S, V>
+
 function derived<S extends Readables, V>(
   source: S,
   then: DeriverSyncThen<S, V>,
   initialValue?: V,
 ): Deriver<S, V>
+
 function derived<S extends Readables, V>(
   source: S,
-  then: DeriverThen<S, V>,
+  thenOrBehavior: DerivedOptions<S, V>,
   initialValue?: V,
-): Deriver<S, V> {
+): Deriver<S, V> | WriteDeriver<S, V>
+
+function derived<S extends Readables, V>(
+  source: S,
+  thenOrBehavior: DerivedOptions<S, V>,
+  initialValue?: V,
+): Deriver<S, V> | WriteDeriver<S, V> {
+  // Make writable derived.
+  if (typeof thenOrBehavior === 'object') {
+    const behavior = thenOrBehavior
+    return arguments.length <= 2
+      ? new WriteDeriver(source, behavior)
+      : new WriteDeriver(source, behavior, initialValue)
+  }
+  // Make readable derived.
+  const then = thenOrBehavior
   return arguments.length <= 2
     ? new Deriver(source, then)
     : new Deriver(source, then, initialValue)
