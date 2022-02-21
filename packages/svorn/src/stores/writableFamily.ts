@@ -21,7 +21,7 @@ import type {
 import { stringify } from '../utils'
 import { Writer } from './writable'
 
-class WriterMember<V, K extends FamilyKey> extends DerivedUpdater<V> {
+export class WriterMember<V, K extends FamilyKey> extends DerivedUpdater<V> {
   #family: WriterFamily<V, K>
   #key: K
 
