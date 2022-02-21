@@ -19,7 +19,7 @@ import type {
   WriterFamilyRecord,
 } from '../types'
 import { stringify } from '../utils'
-import Writer from './Writer'
+import { Writer } from './writable'
 
 class WriterMember<V, K extends FamilyKey> extends DerivedUpdater<V> {
   #family: WriterFamily<V, K>
@@ -52,7 +52,7 @@ class WriterMember<V, K extends FamilyKey> extends DerivedUpdater<V> {
   }
 }
 
-class WriterFamily<V, K extends FamilyKey = string>
+export class WriterFamily<V, K extends FamilyKey = string>
   extends DerivedReader<WriterFamilyRecord<V>>
   implements WritableFamily<V, K>
 {
@@ -134,9 +134,9 @@ class WriterFamily<V, K extends FamilyKey = string>
   }
 }
 
-export const writableFamily = <V, K extends FamilyKey = string>(
+const writableFamily = <V, K extends FamilyKey = string>(
   defaultValue: V,
   initial?: WriterFamilyRecord<V>,
 ): WriterFamily<V, K> => new WriterFamily(defaultValue, initial)
 
-export default WriterFamily
+export default writableFamily

@@ -76,7 +76,7 @@ const asyncMap =
       return subscription
     })
 
-class Deriver<S extends Readables, V>
+export class Deriver<S extends Readables, V>
   extends DerivedReader<V>
   implements Readable<V>
 {
@@ -104,17 +104,17 @@ class Deriver<S extends Readables, V>
   }
 }
 
-export function derived<S extends Readables, V>(
+function derived<S extends Readables, V>(
   source: S,
   then: DeriverAsyncThen<S, V>,
   initialValue?: V,
 ): Deriver<S, V>
-export function derived<S extends Readables, V>(
+function derived<S extends Readables, V>(
   source: S,
   then: DeriverSyncThen<S, V>,
   initialValue?: V,
 ): Deriver<S, V>
-export function derived<S extends Readables, V>(
+function derived<S extends Readables, V>(
   source: S,
   then: DeriverThen<S, V>,
   initialValue?: V,
@@ -124,4 +124,4 @@ export function derived<S extends Readables, V>(
     : new Deriver(source, then, initialValue)
 }
 
-export default Deriver
+export default derived

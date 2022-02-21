@@ -4,7 +4,7 @@ import type { Updater as SvelteUpdater } from 'svelte/store'
 import type { InteropObserver, Updatable } from '../types'
 import { toRxObserver } from '../utils'
 
-class Writer<V> extends BehaviorSubject<V> implements Updatable<V> {
+export class Writer<V> extends BehaviorSubject<V> implements Updatable<V> {
   /** @svelteRxjsInterop */
   set(value: V): void {
     this.next(value)
@@ -19,6 +19,6 @@ class Writer<V> extends BehaviorSubject<V> implements Updatable<V> {
   }
 }
 
-export const writable = <V>(value: V): Writer<V> => new Writer(value)
+const writable = <V>(value: V): Writer<V> => new Writer(value)
 
-export default Writer
+export default writable

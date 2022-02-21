@@ -16,7 +16,7 @@ interface ReaderSet<V> extends Observer<V> {
 
 type ReaderInit<V> = (set: ReaderSet<V>) => (() => void) | void
 
-class Reader<V> extends DerivedReader<V> implements Readable<V> {
+export class Reader<V> extends DerivedReader<V> implements Readable<V> {
   #destroy: (() => void) | void = undefined
   #src: Observable<V>
 
@@ -46,7 +46,7 @@ class Reader<V> extends DerivedReader<V> implements Readable<V> {
   }
 }
 
-export const readable = <V>(initialValue: V, init: ReaderInit<V>): Reader<V> =>
+const readable = <V>(initialValue: V, init: ReaderInit<V>): Reader<V> =>
   new Reader(initialValue, init)
 
-export default Reader
+export default readable
