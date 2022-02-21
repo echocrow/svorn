@@ -7,9 +7,9 @@ import {
   Observable,
   Subscription,
 } from 'rxjs'
-import DerivedReader from 'src/helpers/DerivedReader'
-import defaultWith from 'src/operators/defaultWith'
 
+import DerivedReader from '../helpers/DerivedReader'
+import defaultWith from '../operators/defaultWith'
 import type { Readable } from '../types'
 
 type ReadableInterop<V> = Readable<V> | Subscribable<V>
