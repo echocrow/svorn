@@ -1,6 +1,6 @@
 <script lang="ts">
   import { nameCol, nameRow } from '$lib/cells'
-  import { currCol, currRow } from '$lib/store'
+  import { currCell, currCellCoords, currCol, currRow } from '$lib/store'
   import { range } from '$lib/utils'
 
   export let cols: number
@@ -9,15 +9,14 @@
   $: colOps = range(cols).map(nameCol)
   $: rowOps = range(rows).map(nameRow)
 
-  // $: cellVal = $currCell
+  $: cellVal = $currCell
 
   const getRandomInt = (max: number) => Math.floor(Math.random() * max)
 
   const randoCell = () => {
     const col = getRandomInt(cols)
     const row = getRandomInt(rows)
-    currCol.next(col)
-    currRow.next(row)
+    currCellCoords.next([row, col])
   }
 </script>
 
@@ -35,4 +34,4 @@
 
 <button on:click={randoCell}>?</button>
 
-<!-- <input type="text" bind:value={$cellVal} /> -->
+<input type="text" bind:value={$cellVal} />
