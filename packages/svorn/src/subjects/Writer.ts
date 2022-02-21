@@ -1,10 +1,10 @@
 import { type Subscription, BehaviorSubject } from 'rxjs'
 import type { Updater as SvelteUpdater } from 'svelte/store'
 
-import type { InteropObserver, Writable } from '../types'
+import type { InteropObserver, Updatable } from '../types'
 import { toRxObserver } from '../utils'
 
-class Writer<V> extends BehaviorSubject<V> implements Writable<V> {
+class Writer<V> extends BehaviorSubject<V> implements Updatable<V> {
   /** @svelteRxjsInterop */
   set(value: V): void {
     this.next(value)

@@ -9,10 +9,6 @@ import type {
   Writable as SvelteWritable,
 } from 'svelte/store'
 
-interface RxBehaviorSubjectLike<T> extends RxSubjectLike<T> {
-  getValue(): T
-}
-
 export type InteropObserver<V> =
   | SvelteWritable<V>
   | Partial<RxObserver<V>>
@@ -26,8 +22,14 @@ export interface Readable<V>
 
 export interface Writable<V>
   extends Readable<V>,
-    Omit<RxBehaviorSubjectLike<V>, 'subscribe'>,
-    Omit<SvelteWritable<V>, 'subscribe'> {}
+    Omit<RxSubjectLike<V>, 'subscribe'>,
+    Omit<SvelteWritable<V>, 'subscribe' | 'update'> {}
+
+export interface Updatable<V>
+  extends Writable<V>,
+    Omit<SvelteWritable<V>, 'subscribe'> {
+  getValue(): V
+}
 
 export type FamilyKey = string | number | boolean | void | null
 

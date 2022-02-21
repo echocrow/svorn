@@ -7,7 +7,7 @@ import {
 } from 'rxjs'
 
 import DerivedReader from '../helpers/DerivedReader'
-import DerivedWriter from '../helpers/DerivedWriter'
+import DerivedUpdater from '../helpers/DerivedUpdater'
 import FamilySourceCache from '../helpers/FamilySourceCache'
 import defaultWith from '../operators/defaultWith'
 import switchCombineLatest from '../operators/switchCombineLatest'
@@ -21,7 +21,7 @@ import type {
 import { stringify } from '../utils'
 import Writer from './Writer'
 
-class WriterMember<V, K extends FamilyKey> extends DerivedWriter<V> {
+class WriterMember<V, K extends FamilyKey> extends DerivedUpdater<V> {
   #family: WriterFamily<V, K>
   #key: K
 

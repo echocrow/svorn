@@ -1,4 +1,4 @@
-import { describeWritable, runTestScheduler } from 'spec/helpers'
+import { describeUpdatable, runTestScheduler } from 'spec/helpers'
 import WriterFamily, { writableFamily } from 'src/subjects/WriterFamily'
 
 type WriterMember = ReturnType<WriterFamily<string, string>['get']>
@@ -111,7 +111,7 @@ const describeWriterMember = ({
       })
     })
 
-    describeWritable(() => wm, { defaultValue, latestValue })
+    describeUpdatable(() => wm, { defaultValue, latestValue })
   })
 
 describe('WriterFamily', () => {

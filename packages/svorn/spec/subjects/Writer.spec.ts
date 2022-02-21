@@ -1,8 +1,8 @@
-import { describeWritable } from 'spec/helpers'
+import { describeUpdatable } from 'spec/helpers'
 import Writer, { writable } from 'src/subjects/Writer'
 
 describe('Writer', () => {
-  describeWritable(() => new Writer('0'))
+  describeUpdatable(() => new Writer('0'))
 
   it.each(['', '0', 123, true])('keeps initial value (%j)', (v) => {
     expect(new Writer(v).getValue()).toBe(v)

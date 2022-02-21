@@ -1,5 +1,3 @@
-import type { Updater as SvelteUpdater } from 'svelte/store'
-
 import type { Writable } from '../types'
 import DerivedReader from './DerivedReader'
 
@@ -13,15 +11,9 @@ abstract class DerivedWriter<V>
 
   abstract complete(): void
 
-  abstract getValue(): V
-
   /** @svelteRxjsInterop */
   set(value: V): void {
     this.next(value)
-  }
-  /** @svelteRxjsInterop */
-  update(updater: SvelteUpdater<V>): void {
-    this.next(updater(this.getValue()))
   }
 }
 

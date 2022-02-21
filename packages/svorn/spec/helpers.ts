@@ -8,11 +8,12 @@ import {
   config as rxConfig,
 } from 'rxjs'
 import { type RunHelpers, TestScheduler } from 'rxjs/testing'
-import type { Readable, Writable } from 'src/types'
+import type { Readable, Updatable, Writable } from 'src/types'
 import { writable as svelteWritable } from 'svelte/store'
 
 type ReadObservable<V> = Readable<V> & Observable<V>
 type WriteObservable<V> = Writable<V> & Observable<V>
+type UpdateObservable<V> = Updatable<V> & Observable<V>
 
 export const noop = () => {} // eslint-disable-line @typescript-eslint/no-empty-function
 
@@ -178,11 +179,6 @@ export const describeWritable = (
     let w: WriteObservable<string>
     beforeEach(() => (w = newWritable()))
 
-    it('can getValue()', () => {
-      w.next('abc')
-      expect(w.getValue()).toBe('abc')
-    })
-
     it('can set(v)', () => {
       runTestScheduler(({ cold, expectObservable }) => {
         const src = 'ab-c-'
@@ -190,6 +186,25 @@ export const describeWritable = (
         cold(src).subscribe((v) => w.set(v))
         expectObservable(w).toBe(want)
       })
+    })
+  })
+
+export const describeUpdatable = (
+  newUpdatable: () => UpdateObservable<string>,
+  options: {
+    defaultValue?: string
+    latestValue?: string
+  } = {},
+) =>
+  describe('Updatable', () => {
+    describeWritable(newUpdatable, options)
+
+    let w: UpdateObservable<string>
+    beforeEach(() => (w = newUpdatable()))
+
+    it('can getValue()', () => {
+      w.next('abc')
+      expect(w.getValue()).toBe('abc')
     })
 
     it('can update((p) => v)', () => {
