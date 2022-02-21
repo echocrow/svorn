@@ -1,5 +1,5 @@
 import { describeUpdatable, runTestScheduler } from 'spec/helpers'
-import WriterFamily, { writableFamily } from 'src/subjects/WriterFamily'
+import WriterFamily, { writableFamily } from 'src/stores/WriterFamily'
 
 type WriterMember = ReturnType<WriterFamily<string, string>['get']>
 

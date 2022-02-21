@@ -1,6 +1,6 @@
 import { BehaviorSubject, from, Subject, Subscribable } from 'rxjs'
 import { describeReadable, noop, runTestScheduler } from 'spec/helpers'
-import Deriver, { derived } from 'src/subjects/Deriver'
+import Deriver, { derived } from 'src/stores/Deriver'
 
 describe('Deriver', () => {
   it.each(['', '0', 0, 123, true, 'def'] as const)(

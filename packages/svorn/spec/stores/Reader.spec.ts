@@ -1,6 +1,6 @@
 import { BehaviorSubject } from 'rxjs'
 import { describeReadable, noop, runTestScheduler } from 'spec/helpers'
-import Reader, { readable } from 'src/subjects/Reader'
+import Reader, { readable } from 'src/stores/Reader'
 
 describe('Reader', () => {
   it.each(['', '0', 0, 123, true, 'def'] as const)(

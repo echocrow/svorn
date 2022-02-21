@@ -1,5 +1,5 @@
 import { describeUpdatable } from 'spec/helpers'
-import Writer, { writable } from 'src/subjects/Writer'
+import Writer, { writable } from 'src/stores/Writer'
 
 describe('Writer', () => {
   describeUpdatable(() => new Writer('0'))
