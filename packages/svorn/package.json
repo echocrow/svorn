@@ -11,7 +11,8 @@
     "types": "./dist/svorn.d.ts"
   },
   "scripts": {
-    "test": "jest",
+    "test": "jest --maxWorkers=25%",
+    "test:watch": "jest --watch --maxWorkers=25%",
     "build": "microbundle"
   },
   "version": "0.0.1",
