@@ -4,7 +4,6 @@ import {
   type Subscriber,
   type Unsubscribable,
   combineLatest,
-  map,
   Observable,
   Subscription,
 } from 'rxjs'
@@ -78,6 +77,15 @@ const asyncMap =
       return subscription
     })
 
+const makeAsyncThen = <S extends Readables, V>(
+  then: DeriverThen<S, V>,
+): DeriverAsyncThen<S, V> =>
+  then.length <= 1
+    ? (value, set) => {
+        set((then as DeriverSyncThen<S, V>)(value))
+      }
+    : (then as DeriverAsyncThen<S, V>)
+
 export class Deriver<S extends Readables, V>
   extends DerivedReader<V>
   implements Readable<V>
@@ -90,11 +98,8 @@ export class Deriver<S extends Readables, V>
   constructor(source: S, then: DeriverThen<S, V>, initialValue?: V) {
     super()
 
-    this.#src = makeObservable(source).pipe(
-      then.length <= 1
-        ? map(then as DeriverSyncThen<S, V>)
-        : asyncMap(then as DeriverAsyncThen<S, V>),
-    )
+    const asyncThen = makeAsyncThen(then)
+    this.#src = makeObservable(source).pipe(asyncMap(asyncThen))
 
     if (!(arguments.length <= 2)) {
       this.#src = this.#src.pipe(defaultWith(initialValue as V))
