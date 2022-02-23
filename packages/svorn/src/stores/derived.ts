@@ -22,6 +22,8 @@ type ReadablesValue<S extends Readables> = S extends Readable<infer V>
   ? V
   : { [K in keyof S]: S[K] extends Readable<infer V> ? V : never }
 
+export class CircularDeriverDependency extends RangeError {}
+
 const observableFromReadable = <V>(readable: Readable<V>): Observable<V> =>
   readable instanceof Observable
     ? readable
@@ -59,11 +61,12 @@ const asyncMap =
       let cleanupOp: DeriverCleanup = undefined
       const cleanup = () => (cleanupOp = cleanupOp && runCleanup(cleanupOp))
       const subscription = new Subscription(cleanup)
+      const next = (v: V) => !subscriber.closed && subscriber.next(v)
       subscription.add(
         source.subscribe({
           next: (v) => {
             cleanup()
-            cleanupOp = then(v, (v) => !subscriber.closed && subscriber.next(v))
+            cleanupOp = then(v, next)
           },
           error: (e) => {
             cleanup()
@@ -91,6 +94,7 @@ export class Deriver<S extends Readables, V>
   implements Readable<V>
 {
   #src: Observable<V>
+  #locked = false
 
   constructor(source: S, then: DeriverAsyncThen<S, V>, initialValue?: V)
   constructor(source: S, then: DeriverSyncThen<S, V>, initialValue?: V)
@@ -99,7 +103,20 @@ export class Deriver<S extends Readables, V>
     super()
 
     const asyncThen = makeAsyncThen(then)
-    this.#src = makeObservable(source).pipe(asyncMap(asyncThen))
+
+    const safeThen: DeriverAsyncThen<S, V> = (value, set) => {
+      if (this.#locked) {
+        throw new CircularDeriverDependency(
+          'New Deriver value received while still processing the previous value',
+        )
+      }
+      this.#locked = true
+      const cleanup = asyncThen(value, set)
+      this.#locked = false
+      return cleanup
+    }
+
+    this.#src = makeObservable(source).pipe(asyncMap(safeThen))
 
     if (!(arguments.length <= 2)) {
       this.#src = this.#src.pipe(defaultWith(initialValue as V))

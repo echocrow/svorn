@@ -3,7 +3,9 @@ import {
   type Subscribable,
   BehaviorSubject,
   from,
+  merge,
   Subject,
+  switchAll,
 } from 'rxjs'
 import {
   describeReadable,
@@ -11,7 +13,11 @@ import {
   noop,
   runTestScheduler,
 } from 'spec/helpers'
-import derived, { Deriver, WriteDeriver } from 'src/stores/derived'
+import derived, {
+  CircularDeriverDependency,
+  Deriver,
+  WriteDeriver,
+} from 'src/stores/derived'
 
 const pass = <V>(v: V): V => v
 
@@ -190,6 +196,32 @@ const describeDerivable = <D extends typeof Deriver | typeof WriteDeriver>(
         const d = newDeriver(s, pass)
         expectObservable(d).toBe(want)
       })
+    })
+
+    it('detects circular dependencies', () => {
+      const tick = jest.fn((n: number): number => {
+        if (n > 10) throw new RangeError('Maximum test tick size exceeded')
+        return n + 1
+      })
+
+      const brick = () =>
+        runTestScheduler(({ hot }) => {
+          const coreSrc = hot('1', { 1: 1 })
+
+          const aSrc = new BehaviorSubject<Observable<number>>(new Subject())
+          const a = newDeriver(aSrc.pipe(switchAll()), tick)
+
+          const bSrc = new BehaviorSubject<Observable<number>>(new Subject())
+          const b = newDeriver(bSrc.pipe(switchAll()), tick)
+
+          aSrc.next(merge(b, coreSrc))
+          bSrc.next(a)
+
+          b.subscribe(noop)
+        })
+
+      expect(brick).toThrow(CircularDeriverDependency)
+      expect(tick.mock.calls.length).toBeLessThan(10)
     })
   })
 
