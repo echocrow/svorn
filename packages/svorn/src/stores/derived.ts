@@ -49,16 +49,16 @@ type DeriverThen<S extends Readables, V> =
   | DeriverSyncThen<S, V>
   | DeriverAsyncThen<S, V>
 
-const runCleanup = (cleanup: DeriverCleanup): void => {
+const runCleanup = (cleanup: Exclude<DeriverCleanup, void>): void => {
   if (typeof cleanup === 'function') cleanup()
-  else if (typeof cleanup?.unsubscribe === 'function') cleanup.unsubscribe()
+  else if (typeof cleanup.unsubscribe === 'function') cleanup.unsubscribe()
 }
 const asyncMap =
   <S extends Readables, V>(then: DeriverAsyncThen<S, V>) =>
   (source: Observable<ReadablesValue<S>>): Observable<V> =>
     new Observable((subscriber: Subscriber<V>) => {
       let cleanupOp: DeriverCleanup = undefined
-      const cleanup = () => (cleanupOp = runCleanup(cleanupOp))
+      const cleanup = () => (cleanupOp = cleanupOp && runCleanup(cleanupOp))
       const subscription = new Subscription(cleanup)
       subscription.add(
         source.subscribe({
