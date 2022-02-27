@@ -5,6 +5,7 @@ import {
   type Unsubscribable,
   combineLatest,
   Observable,
+  share,
   Subscription,
 } from 'rxjs'
 
@@ -121,6 +122,8 @@ export class Deriver<S extends Readables, V>
     if (!(arguments.length <= 2)) {
       this.#src = this.#src.pipe(defaultWith(initialValue as V))
     }
+
+    this.#src = this.#src.pipe(share())
   }
 
   protected _subscribe(subscriber: Subscriber<V>) {

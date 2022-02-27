@@ -198,6 +198,29 @@ const describeDerivable = <D extends typeof Deriver | typeof WriteDeriver>(
       })
     })
 
+    it('shares emitted values', () => {
+      runTestScheduler(({ hot, flush, expectObservable }) => {
+        const src = '      ab-c|'
+        const wantCalls = '12-3-'
+
+        const calls = hot<number>('')
+        let callCount = 0
+        const tick = jest.fn((s: string): string => {
+          calls.next(++callCount)
+          return s
+        })
+
+        const d = newDeriver(hot(src), tick)
+
+        d.subscribe(noop)
+        d.subscribe(noop)
+
+        expectObservable(calls).toBe(wantCalls, { 1: 1, 2: 2, 3: 3 })
+        flush()
+        expect(tick).toBeCalledTimes(3)
+      })
+    })
+
     it('detects circular dependencies', () => {
       const tick = jest.fn((n: number): number => {
         if (n > 10) throw new RangeError('Maximum test tick size exceeded')
