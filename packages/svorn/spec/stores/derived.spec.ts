@@ -1,11 +1,10 @@
 import {
-  type Observable,
   type Subscribable,
   BehaviorSubject,
   from,
   merge,
+  Observable,
   Subject,
-  switchAll,
 } from 'rxjs'
 import {
   describeReadable,
@@ -231,14 +230,11 @@ const describeDerivable = <D extends typeof Deriver | typeof WriteDeriver>(
         runTestScheduler(({ hot }) => {
           const coreSrc = hot('1', { 1: 1 })
 
-          const aSrc = new BehaviorSubject<Observable<number>>(new Subject())
-          const a = newDeriver(aSrc.pipe(switchAll()), tick)
-
-          const bSrc = new BehaviorSubject<Observable<number>>(new Subject())
-          const b = newDeriver(bSrc.pipe(switchAll()), tick)
-
-          aSrc.next(merge(b, coreSrc))
-          bSrc.next(a)
+          const aSrc: Observable<number> = new Observable((subscriber) =>
+            merge(coreSrc, b).subscribe(subscriber),
+          )
+          const a = newDeriver(aSrc, tick)
+          const b = newDeriver(a, tick)
 
           b.subscribe(noop)
         })
