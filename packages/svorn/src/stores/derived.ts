@@ -5,7 +5,7 @@ import {
   type Unsubscribable,
   combineLatest,
   Observable,
-  share,
+  shareReplay,
   Subscription,
 } from 'rxjs'
 
@@ -123,7 +123,7 @@ export class Deriver<S extends Readables, V>
       this.#src = this.#src.pipe(defaultWith(initialValue as V))
     }
 
-    this.#src = this.#src.pipe(share())
+    this.#src = this.#src.pipe(shareReplay({ bufferSize: 1, refCount: true }))
   }
 
   protected _subscribe(subscriber: Subscriber<V>) {

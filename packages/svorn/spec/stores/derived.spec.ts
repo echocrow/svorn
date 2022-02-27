@@ -220,6 +220,42 @@ const describeDerivable = <D extends typeof Deriver | typeof WriteDeriver>(
       })
     })
 
+    it('is subscribes to source only while being subscribes to ', () => {
+      runTestScheduler(({ hot, expectObservable, expectSubscriptions }) => {
+        const sub1 = '      --^--!----'
+        const sub2 = '      ----^--!--'
+        const wantSrcSub = '--^----!--'
+        const s = hot('')
+        const d = newDeriver(s, pass)
+        expectObservable(d, sub1)
+        expectObservable(d, sub2)
+        expectSubscriptions(s.subscriptions).toBe(wantSrcSub)
+      })
+    })
+
+    describe('on late subscriptions', () => {
+      it('does not emit latest value on first subscription', () => {
+        runTestScheduler(({ hot, expectObservable }) => {
+          const src = ' a-b'
+          const sub = ' -^-'
+          const want = '--b'
+          const d = newDeriver(hot(src), pass)
+          expectObservable(d, sub).toBe(want)
+        })
+      })
+      it('emits latest value on subsequent subscriptions', () => {
+        runTestScheduler(({ hot, expectObservable }) => {
+          const src = '  a-b-c-d-'
+          const sub1 = ' -^------'
+          const sub2 = ' -----^--'
+          const want2 = '-----cd-'
+          const d = newDeriver(hot(src), pass)
+          expectObservable(d, sub1)
+          expectObservable(d, sub2).toBe(want2)
+        })
+      })
+    })
+
     it('detects circular dependencies', () => {
       const tick = jest.fn((n: number): number => {
         if (n > 10) throw new RangeError('Maximum test tick size exceeded')
