@@ -435,4 +435,22 @@ describe('derived', () => {
 
     describeDerivedPassingArgs((_, then) => ({ then, next: pass }))
   })
+
+  it('properly types values of source array', () => {
+    runTestScheduler(({ cold, expectObservable }) => {
+      const srcA = 'a-c--'
+      const srcB = 'b--d-'
+      const want = '0-12-'
+
+      const a = cold(srcA)
+      const b = cold(srcB)
+      const d = derived(
+        [a, b] as const,
+        ([a, b]) => `${a.toUpperCase()}:${b.toUpperCase()}`,
+      )
+
+      // This is mostly a TypeScript check, but doesn't hurt to still test.
+      expectObservable(d).toBe(want, { 0: 'A:B', 1: 'C:B', 2: 'C:D' })
+    })
+  })
 })

@@ -19,11 +19,11 @@ import type { Readable, Writable } from '../types'
 type ReadableInterop<V> = Readable<V> | Subscribable<V>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Readables = ReadableInterop<any> | ReadableInterop<any>[]
+type Readables = ReadableInterop<any> | readonly ReadableInterop<any>[]
 
-type ReadablesValue<S extends Readables> = S extends Readable<infer V>
+type ReadablesValue<S extends Readables> = S extends ReadableInterop<infer V>
   ? V
-  : { [K in keyof S]: S[K] extends Readable<infer V> ? V : never }
+  : Readonly<{ [K in keyof S]: S[K] extends Readable<infer V> ? V : never }>
 
 export class CircularDeriverDependency extends RangeError {}
 
@@ -39,7 +39,7 @@ const makeObservable = <S extends Readables>(
     ? (combineLatest(source.map(observableFromReadable)) as Observable<
         ReadablesValue<S>
       >)
-    : observableFromReadable(source)
+    : observableFromReadable(source as ReadableInterop<any>) // eslint-disable-line @typescript-eslint/no-explicit-any
 
 type DeriverCleanup = Unsubscribable | (() => void) | void
 
