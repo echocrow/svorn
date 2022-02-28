@@ -5,6 +5,7 @@ import {
   merge,
   Observable,
   Subject,
+  switchMap,
 } from 'rxjs'
 import {
   describeReadable,
@@ -278,6 +279,59 @@ const describeDerivable = <D extends typeof Deriver | typeof WriteDeriver>(
       expect(brick).toThrow(CircularDeriverDependency)
       expect(tick.mock.calls.length).toBeLessThan(10)
     })
+
+    describe('catching errors', () => {
+      const tick = jest.fn((n: string): string => {
+        if (tick.mock.calls.length > 10)
+          throw new RangeError('Maximum test tick size exceeded')
+        return n.toUpperCase()
+      })
+      const deriverBehavior = { then: tick, catch: () => 'X' }
+
+      beforeEach(() => tick.mockClear())
+
+      it('catches and maps circular dependencies', () => {
+        runTestScheduler(({ hot, expectObservable }) => {
+          const src = '  a----b----'
+          const wantA = '(AX)-(BX)-'
+          const wantB = 'X----X----'
+
+          const coreSrc = hot(src)
+
+          const aSrc: Observable<string> = new Observable((subscriber) =>
+            merge(coreSrc, b).subscribe(subscriber),
+          )
+          const a = newDeriver(aSrc, deriverBehavior)
+          const b = newDeriver(a, deriverBehavior)
+
+          expectObservable(a).toBe(wantA)
+          expectObservable(b).toBe(wantB)
+        })
+      })
+
+      it('catches and maps circular dependencies #2', () => {
+        runTestScheduler(({ hot, expectObservable }) => {
+          const src = '  a--------b--------c---'
+          const loop = ' 0--1-----------0------'
+          const wantA = 'A--(AX)--(BX)-----C---'
+          const wantB = 'A--(AX)--(BX)-----C---'
+
+          const loopSrc = hot(loop, { 0: false, 1: true })
+          const coreSrc = hot(src)
+
+          const aSrc: Observable<string> = new Observable((subscriber) =>
+            loopSrc
+              .pipe(switchMap((loop) => (loop ? merge(coreSrc, b) : coreSrc)))
+              .subscribe(subscriber),
+          )
+          const a = newDeriver(aSrc, deriverBehavior)
+          const b = newDeriver(a, deriverBehavior)
+
+          expectObservable(a).toBe(wantA)
+          expectObservable(b).toBe(wantB)
+        })
+      })
+    })
   })
 
 describe('Deriver', () => {
@@ -288,10 +342,14 @@ describe('Deriver', () => {
 })
 
 describe('WriteDeriver', () => {
+  const makeWriteDeriverBehavior = (
+    then: ConstructorParameters<typeof Deriver>[1],
+  ): ConstructorParameters<typeof WriteDeriver>[1] =>
+    typeof then === 'function' ? { then } : then
   describeDerivable<typeof WriteDeriver>(
-    (source, then) => new WriteDeriver(source, { then }),
+    (source, then) => new WriteDeriver(source, makeWriteDeriverBehavior(then)),
     (source, then, initialValue) =>
-      new WriteDeriver(source, { then }, initialValue),
+      new WriteDeriver(source, makeWriteDeriverBehavior(then), initialValue),
   )
 
   describe('with observable source', () => {

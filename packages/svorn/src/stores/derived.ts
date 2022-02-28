@@ -4,6 +4,8 @@ import {
   type Subscriber,
   type Unsubscribable,
   combineLatest,
+  filter,
+  map,
   Observable,
   shareReplay,
   Subscription,
@@ -41,15 +43,27 @@ const makeObservable = <S extends Readables>(
 
 type DeriverCleanup = Unsubscribable | (() => void) | void
 
-type DeriverSyncThen<S extends Readables, V> = (value: ReadablesValue<S>) => V
-type DeriverAsyncThen<S extends Readables, V> = (
-  value: ReadablesValue<S>,
-  set: (value: V) => void,
+type DeriverSyncSet<I, O> = (value: I) => O
+type DeriverAsyncSet<I, O> = (
+  value: I,
+  set: (value: O) => void,
 ) => DeriverCleanup
 
+type DeriverSyncThen<S extends Readables, V> = DeriverSyncSet<
+  ReadablesValue<S>,
+  V
+>
+type DeriverAsyncThen<S extends Readables, V> = DeriverAsyncSet<
+  ReadablesValue<S>,
+  V
+>
 type DeriverThen<S extends Readables, V> =
   | DeriverSyncThen<S, V>
   | DeriverAsyncThen<S, V>
+
+type DeriverSyncCatch<V> = DeriverSyncSet<unknown, V>
+type DeriverAsyncCatch<V> = DeriverAsyncSet<unknown, V>
+type DeriverCatch<V> = DeriverSyncCatch<V> | DeriverAsyncCatch<V>
 
 const runCleanup = (cleanup: Exclude<DeriverCleanup, void>): void => {
   if (typeof cleanup === 'function') cleanup()
@@ -81,39 +95,83 @@ const asyncMap =
       return subscription
     })
 
-const makeAsyncThen = <S extends Readables, V>(
-  then: DeriverThen<S, V>,
-): DeriverAsyncThen<S, V> =>
-  then.length <= 1
+const makeAsyncSet = <I, O>(
+  fn: DeriverSyncSet<I, O> | DeriverAsyncSet<I, O>,
+): DeriverAsyncSet<I, O> =>
+  fn.length <= 1
     ? (value, set) => {
-        set((then as DeriverSyncThen<S, V>)(value))
+        set((fn as DeriverSyncSet<I, O>)(value))
       }
-    : (then as DeriverAsyncThen<S, V>)
+    : (fn as DeriverAsyncSet<I, O>)
+
+interface DeriverSyncBehavior<S extends Readables, V> {
+  then: DeriverSyncThen<S, V>
+  catch?: DeriverSyncCatch<V>
+}
+interface DeriverAsyncBehavior<S extends Readables, V> {
+  then: DeriverAsyncThen<S, V>
+  catch?: DeriverAsyncCatch<V>
+}
+interface DeriverBehavior<S extends Readables, V> {
+  then: DeriverThen<S, V>
+  catch?: DeriverCatch<V>
+}
+
+enum DeriverReady {
+  Ok,
+  Busy,
+  Error,
+}
 
 export class Deriver<S extends Readables, V>
   extends DerivedReader<V>
   implements Readable<V>
 {
   #src: Observable<V>
-  #locked = false
+  #ready: DeriverReady = DeriverReady.Ok
+  #i = 0
 
   constructor(source: S, then: DeriverAsyncThen<S, V>, initialValue?: V)
   constructor(source: S, then: DeriverSyncThen<S, V>, initialValue?: V)
-  constructor(source: S, then: DeriverThen<S, V>, initialValue?: V)
-  constructor(source: S, then: DeriverThen<S, V>, initialValue?: V) {
+  constructor(source: S, behavior: DeriverAsyncBehavior<S, V>, initialValue?: V)
+  constructor(source: S, behavior: DeriverSyncBehavior<S, V>, initialValue?: V)
+  constructor(
+    source: S,
+    thenOrBehavior: DeriverThen<S, V> | DeriverBehavior<S, V>,
+    initialValue?: V,
+  )
+  constructor(
+    source: S,
+    thenOrBehavior: DeriverThen<S, V> | DeriverBehavior<S, V>,
+    initialValue?: V,
+  ) {
     super()
 
-    const asyncThen = makeAsyncThen(then)
+    const behavior: DeriverBehavior<S, V> =
+      typeof thenOrBehavior !== 'function'
+        ? thenOrBehavior
+        : { then: thenOrBehavior }
+    const { then, catch: catchFn } = behavior
+
+    const asyncThen = makeAsyncSet(then)
+    const asyncCatch = catchFn ? makeAsyncSet(catchFn) : undefined
 
     const safeThen: DeriverAsyncThen<S, V> = (value, set) => {
-      if (this.#locked) {
-        throw new CircularDeriverDependency(
+      if (this.#ready === DeriverReady.Error) return
+
+      if (this.#ready !== DeriverReady.Ok) {
+        this.#ready = DeriverReady.Error
+        const error = new CircularDeriverDependency(
           'New Deriver value received while still processing the previous value',
         )
+        if (!asyncCatch) throw error
+        return asyncCatch(error, set)
       }
-      this.#locked = true
+
+      this.#ready = DeriverReady.Busy
       const cleanup = asyncThen(value, set)
-      this.#locked = false
+      this.#ready = DeriverReady.Ok
+
       return cleanup
     }
 
@@ -123,7 +181,13 @@ export class Deriver<S extends Readables, V>
       this.#src = this.#src.pipe(defaultWith(initialValue as V))
     }
 
-    this.#src = this.#src.pipe(shareReplay({ bufferSize: 1, refCount: true }))
+    this.#src = this.#src.pipe(
+      map((v) => ({ v: v, i: ++this.#i })),
+      shareReplay({ bufferSize: 1, refCount: true }),
+      // Filter potential duplicate emissions from earlier loops.
+      filter(({ i }) => i === this.#i),
+      map(({ v }) => v),
+    )
   }
 
   protected _subscribe(subscriber: Subscriber<V>) {
@@ -132,17 +196,14 @@ export class Deriver<S extends Readables, V>
 }
 
 interface WriteDeriverSyncBehavior<S extends Readables, V>
-  extends Partial<Observer<V>> {
-  then: DeriverSyncThen<S, V>
-}
+  extends DeriverSyncBehavior<S, V>,
+    Partial<Observer<V>> {}
 interface WriteDeriverAsyncBehavior<S extends Readables, V>
-  extends Partial<Observer<V>> {
-  then: DeriverAsyncThen<S, V>
-}
+  extends DeriverAsyncBehavior<S, V>,
+    Partial<Observer<V>> {}
 interface WriteDeriverBehavior<S extends Readables, V>
-  extends Partial<Observer<V>> {
-  then: DeriverThen<S, V>
-}
+  extends DeriverBehavior<S, V>,
+    Partial<Observer<V>> {}
 
 export class WriteDeriver<S extends Readables, V>
   extends DerivedWriter<V>
@@ -172,8 +233,8 @@ export class WriteDeriver<S extends Readables, V>
     super()
     this.#src =
       arguments.length <= 2
-        ? new Deriver(source, behavior.then)
-        : new Deriver(source, behavior.then, initialValue)
+        ? new Deriver(source, behavior)
+        : new Deriver(source, behavior, initialValue)
     this.#next = behavior.next
     this.#error = behavior.error
     this.#complete = behavior.complete
@@ -201,6 +262,7 @@ export class WriteDeriver<S extends Readables, V>
 
 type DerivedOptions<S extends Readables, V> =
   | DeriverThen<S, V>
+  | DeriverBehavior<S, V>
   | WriteDeriverBehavior<S, V>
 
 function derived<S extends Readables, V>(
