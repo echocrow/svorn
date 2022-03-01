@@ -19,7 +19,7 @@ import type { Readable, Writable } from '../types'
 
 type ReadableInterop<V> = Readable<V> | Subscribable<V>
 
-type Readables =
+export type Readables =
   | ReadableInterop<any> // eslint-disable-line @typescript-eslint/no-explicit-any
   | Readonly<Array<ReadableInterop<any> | any>> // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -62,15 +62,15 @@ type DeriverAsyncSet<I, O> = (
   set: (value: O) => void,
 ) => DeriverCleanup
 
-type DeriverSyncThen<S extends Readables, V> = DeriverSyncSet<
+export type DeriverSyncThen<S extends Readables, V> = DeriverSyncSet<
   ReadablesValue<S>,
   V
 >
-type DeriverAsyncThen<S extends Readables, V> = DeriverAsyncSet<
+export type DeriverAsyncThen<S extends Readables, V> = DeriverAsyncSet<
   ReadablesValue<S>,
   V
 >
-type DeriverThen<S extends Readables, V> =
+export type DeriverThen<S extends Readables, V> =
   | DeriverSyncThen<S, V>
   | DeriverAsyncThen<S, V>
 
@@ -117,15 +117,15 @@ const makeAsyncSet = <I, O>(
       }
     : (fn as DeriverAsyncSet<I, O>)
 
-interface DeriverSyncBehavior<S extends Readables, V> {
+export interface DeriverSyncBehavior<S extends Readables, V> {
   then: DeriverSyncThen<S, V>
   catch?: DeriverSyncCatch<V>
 }
-interface DeriverAsyncBehavior<S extends Readables, V> {
+export interface DeriverAsyncBehavior<S extends Readables, V> {
   then: DeriverAsyncThen<S, V>
   catch?: DeriverAsyncCatch<V>
 }
-interface DeriverBehavior<S extends Readables, V> {
+export interface DeriverBehavior<S extends Readables, V> {
   then: DeriverThen<S, V>
   catch?: DeriverCatch<V>
 }
@@ -283,13 +283,11 @@ function derived<S extends Readables, V>(
   behavior: WriteDeriverAsyncBehavior<S, V>,
   initialValue?: V,
 ): WriteDeriver<S, V>
-
 function derived<S extends Readables, V>(
   source: S,
   behavior: WriteDeriverSyncBehavior<S, V>,
   initialValue?: V,
 ): WriteDeriver<S, V>
-
 function derived<S extends Readables, V>(
   source: S,
   behavior: WriteDeriverBehavior<S, V>,
@@ -301,13 +299,11 @@ function derived<S extends Readables, V>(
   then: DeriverAsyncThen<S, V>,
   initialValue?: V,
 ): Deriver<S, V>
-
 function derived<S extends Readables, V>(
   source: S,
   then: DeriverSyncThen<S, V>,
   initialValue?: V,
 ): Deriver<S, V>
-
 function derived<S extends Readables, V>(
   source: S,
   thenOrBehavior: DerivedOptions<S, V>,
