@@ -15,6 +15,7 @@ import switchExhaustAll from '../operators/switchExhaustAll'
 import type {
   FamilyKey,
   InteropObserver,
+  Readable,
   WritableFamily,
   WriterFamilyRecord,
 } from '../types'
@@ -54,7 +55,7 @@ export class WriterMember<V, K extends FamilyKey> extends DerivedUpdater<V> {
 
 export class WriterFamily<V, K extends FamilyKey = string>
   extends DerivedReader<WriterFamilyRecord<V>>
-  implements WritableFamily<V, K>
+  implements WritableFamily<V, K>, Readable<WriterFamilyRecord<V>>
 {
   #store = new Writer<Record<string, Writer<V>>>({})
   #default: V

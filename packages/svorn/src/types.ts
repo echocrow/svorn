@@ -35,9 +35,7 @@ export type FamilyKey = string | number | boolean | void | null
 
 export type WriterFamilyRecord<V> = Record<string, V>
 
-export interface ReadableFamily<V, K extends FamilyKey>
-  extends Readable<WriterFamilyRecord<V>> {
-  subscribeTo(key: K, observer: InteropObserver<V>): RxUnsubscribable
+export interface ReadableFamily<V, K extends FamilyKey> {
   get(key: K): Readable<V>
 }
 
