@@ -1,4 +1,4 @@
-import { derived, writable, writableFamily } from 'svorn'
+import { derived, derivedFamily, writable, writableFamily } from 'svorn'
 
 import { type CellCoord, nameCell, parseCellName } from './cells'
 
@@ -29,3 +29,11 @@ export const currRow = derived(currCellCoords, {
 })
 
 export const currCell = derived(currCellName, (cellName) => sheet.get(cellName))
+
+const asNumber = (val: string | number): number =>
+  typeof val === 'number' ? val ?? 0 : !val ? 0 : parseInt(val, 10) ?? 0
+
+export const derivedSheet = derivedFamily((cell: string) => ({
+  source: sheet.get(cell),
+  then: (value) => asNumber(value),
+}))

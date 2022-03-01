@@ -1,13 +1,14 @@
 <script lang="ts">
   import { interval } from 'rxjs'
   import { onMount } from 'svelte'
+  import type { ReadableFamily } from 'svorn'
 
   import { nameCell } from '$lib/cells'
   import { sheet } from '$lib/store'
 
   export let row: number
   export let col: number
-  export let src: typeof sheet = sheet
+  export let src: ReadableFamily<any, string> = sheet // eslint-disable-line @typescript-eslint/no-explicit-any
 
   const name = nameCell(row, col)
   const val = src.get(name)
