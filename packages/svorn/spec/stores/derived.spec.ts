@@ -115,6 +115,18 @@ const describeDerivable = <D extends typeof Deriver | typeof WriteDeriver>(
           expectObservable(d).toBe(want, { a: 'a:0' })
         })
       })
+
+      it('accepts simple values as sources', () => {
+        runTestScheduler(({ cold, expectObservable }) => {
+          const srcA = 'a-c--'
+          const want = '0-1--'
+          const d = newDeriver(
+            [cold(srcA), 'b'],
+            ([a, b]: [string, string]) => `${a}:${b}`,
+          )
+          expectObservable(d).toBe(want, { 0: 'a:b', 1: 'c:b' })
+        })
+      })
     })
 
     describe('with async set function', () => {

@@ -7,6 +7,7 @@ import {
   filter,
   map,
   Observable,
+  of,
   shareReplay,
   Subscription,
 } from 'rxjs'
@@ -18,19 +19,31 @@ import type { Readable, Writable } from '../types'
 
 type ReadableInterop<V> = Readable<V> | Subscribable<V>
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Readables = ReadableInterop<any> | readonly ReadableInterop<any>[]
+type Readables =
+  | ReadableInterop<any> // eslint-disable-line @typescript-eslint/no-explicit-any
+  | Readonly<Array<ReadableInterop<any> | any>> // eslint-disable-line @typescript-eslint/no-explicit-any
 
 type ReadablesValue<S extends Readables> = S extends ReadableInterop<infer V>
   ? V
-  : Readonly<{ [K in keyof S]: S[K] extends Readable<infer V> ? V : never }>
+  : Readonly<{
+      [K in keyof S]: S[K] extends ReadableInterop<infer V> ? V : S[K]
+    }>
 
 export class CircularDeriverDependency extends RangeError {}
 
-const observableFromReadable = <V>(readable: Readable<V>): Observable<V> =>
-  readable instanceof Observable
-    ? readable
-    : new Observable((subscriber) => readable.subscribe(subscriber))
+const observableFromReadable = <V>(
+  readable: Readable<V> | V,
+): Observable<V> => {
+  if (readable instanceof Observable) return readable
+  if (
+    typeof readable === 'object' &&
+    'subscribe' in readable &&
+    typeof readable.subscribe === 'function'
+  ) {
+    return new Observable((subscriber) => readable.subscribe(subscriber))
+  }
+  return of(readable as V)
+}
 
 const makeObservable = <S extends Readables>(
   source: S,
@@ -39,7 +52,7 @@ const makeObservable = <S extends Readables>(
     ? (combineLatest(source.map(observableFromReadable)) as Observable<
         ReadablesValue<S>
       >)
-    : observableFromReadable(source as ReadableInterop<any>) // eslint-disable-line @typescript-eslint/no-explicit-any
+    : observableFromReadable(source)
 
 type DeriverCleanup = Unsubscribable | (() => void) | void
 
