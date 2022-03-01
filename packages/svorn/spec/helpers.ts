@@ -17,6 +17,8 @@ type UpdateObservable<V> = Updatable<V> & Observable<V>
 
 export const noop = () => {} // eslint-disable-line @typescript-eslint/no-empty-function
 
+export const pass = <V>(v: V): V => v
+
 export const runTestScheduler = (runner: (helpers: RunHelpers) => void) => {
   const ts = new TestScheduler((actual, expected) =>
     expect(actual).toEqual(expected),

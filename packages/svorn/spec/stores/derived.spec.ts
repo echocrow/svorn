@@ -11,36 +11,36 @@ import {
   describeReadable,
   describeWritable,
   noop,
+  pass,
   runTestScheduler,
 } from 'spec/helpers'
 import derived, {
   CircularDeriverDependency,
   Deriver,
+  Readables,
   WriteDeriver,
 } from 'src/stores/derived'
 
-const pass = <V>(v: V): V => v
-
-const describeDerivable = <D extends typeof Deriver | typeof WriteDeriver>(
+export const describeDerivable = <
+  D extends typeof Deriver | typeof WriteDeriver,
+>(
   newDeriver: (
-    source: ConstructorParameters<D>[0],
+    source: Readables,
     then: ConstructorParameters<typeof Deriver>[1],
-  ) => InstanceType<D> & Observable<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+  ) => Observable<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
   newDeriverWithInitial: (
     source: ConstructorParameters<D>[0],
     then: ConstructorParameters<typeof Deriver>[1],
     initialValue: unknown,
-  ) => InstanceType<D> & Observable<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+  ) => Observable<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
 ) =>
   describe('Derivable', () => {
     it.each(['', '0', 0, 123, true, 'def'] as const)(
       'emits initial value synchronously (%j)',
       (v) => {
         runTestScheduler(({ expectObservable, cold }) => {
-          const then = noop as () => typeof v
-          expectObservable(newDeriverWithInitial(cold(''), then, v)).toBe('d', {
-            d: v,
-          })
+          const d = newDeriverWithInitial(cold(''), noop, v)
+          expectObservable(d).toBe('d', { d: v })
         })
       },
     )
