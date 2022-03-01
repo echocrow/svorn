@@ -70,11 +70,11 @@ const describeDerivable = <D extends typeof Deriver | typeof WriteDeriver>(
     describe('with an array of observables', () => {
       it('emits values when either source emits', () => {
         runTestScheduler(({ expectObservable, cold }) => {
-          const s0 = cold('a-b----c-----')
-          const s1 = cold('0-1------2--3')
-          const want = '   a-(bc)-d-e--f'
+          const src1 = 'a-b----c-----'
+          const src2 = '0-1------2--3'
+          const want = 'a-(bc)-d-e--f'
           const d = newDeriver(
-            [s0, s1],
+            [cold(src1), cold(src2)],
             ([v0, v1]: [string, string]) => `${v0}:${v1}`,
           )
           expectObservable(d).toBe(want, {
@@ -90,12 +90,11 @@ const describeDerivable = <D extends typeof Deriver | typeof WriteDeriver>(
 
       it('completes when all sources completed', () => {
         runTestScheduler(({ expectObservable, cold }) => {
-          const src0 = 'a-|'
-          const src1 = '0----|'
+          const src1 = 'a-|'
+          const src2 = '0----|'
           const want = 'a----|'
-          const [c0, c1] = [cold(src0), cold(src1)]
           const d = newDeriver(
-            [c0, c1],
+            [cold(src1), cold(src2)],
             ([v0, v1]: [string, string]) => `${v0}:${v1}`,
           )
           expectObservable(d).toBe(want, { a: 'a:0' })
@@ -104,12 +103,11 @@ const describeDerivable = <D extends typeof Deriver | typeof WriteDeriver>(
 
       it('errors when either source errors', () => {
         runTestScheduler(({ expectObservable, cold }) => {
-          const src0 = 'a-#'
-          const src1 = '0----#'
+          const src1 = 'a-#'
+          const src2 = '0----#'
           const want = 'a-#'
-          const [c0, c1] = [cold(src0), cold(src1)]
           const d = newDeriver(
-            [c0, c1],
+            [cold(src1), cold(src2)],
             ([v0, v1]: [string, string]) => `${v0}:${v1}`,
           )
           expectObservable(d).toBe(want, { a: 'a:0' })
