@@ -62,21 +62,41 @@ type DeriverAsyncSet<I, O> = (
   set: (value: O) => void,
 ) => DeriverCleanup
 
-export type DeriverSyncThen<S extends Readables, V> = DeriverSyncSet<
+type DeriverSyncThen<S extends Readables, V> = DeriverSyncSet<
   ReadablesValue<S>,
   V
 >
-export type DeriverAsyncThen<S extends Readables, V> = DeriverAsyncSet<
+type DeriverAsyncThen<S extends Readables, V> = DeriverAsyncSet<
   ReadablesValue<S>,
   V
 >
-export type DeriverThen<S extends Readables, V> =
+type DeriverThen<S extends Readables, V> =
   | DeriverSyncThen<S, V>
   | DeriverAsyncThen<S, V>
 
 type DeriverSyncCatch<V> = DeriverSyncSet<unknown, V>
 type DeriverAsyncCatch<V> = DeriverAsyncSet<unknown, V>
 type DeriverCatch<V> = DeriverSyncCatch<V> | DeriverAsyncCatch<V>
+
+interface DeriverBaseBehavior<S extends Readables, V> {
+  initial?: V
+}
+
+export interface DeriverSyncBehavior<S extends Readables, V>
+  extends DeriverBaseBehavior<S, V> {
+  then: DeriverSyncThen<S, V>
+  catch?: DeriverSyncCatch<V>
+}
+export interface DeriverAsyncBehavior<S extends Readables, V>
+  extends DeriverBaseBehavior<S, V> {
+  then: DeriverAsyncThen<S, V>
+  catch?: DeriverAsyncCatch<V>
+}
+export interface DeriverBehavior<S extends Readables, V>
+  extends DeriverBaseBehavior<S, V> {
+  then: DeriverThen<S, V>
+  catch?: DeriverCatch<V>
+}
 
 const runCleanup = (cleanup: Exclude<DeriverCleanup, void>): void => {
   if (typeof cleanup === 'function') cleanup()
@@ -117,19 +137,6 @@ const makeAsyncSet = <I, O>(
       }
     : (fn as DeriverAsyncSet<I, O>)
 
-export interface DeriverSyncBehavior<S extends Readables, V> {
-  then: DeriverSyncThen<S, V>
-  catch?: DeriverSyncCatch<V>
-}
-export interface DeriverAsyncBehavior<S extends Readables, V> {
-  then: DeriverAsyncThen<S, V>
-  catch?: DeriverAsyncCatch<V>
-}
-export interface DeriverBehavior<S extends Readables, V> {
-  then: DeriverThen<S, V>
-  catch?: DeriverCatch<V>
-}
-
 enum DeriverReady {
   Ok,
   Busy,
@@ -147,17 +154,14 @@ export class Deriver<S extends Readables, V>
   constructor(
     source: S,
     thenOrBehavior: DeriverAsyncThen<S, V> | DeriverAsyncBehavior<S, V>,
-    initialValue?: V,
   )
   constructor(
     source: S,
     thenOrBehavior: DeriverThen<S, V> | DeriverBehavior<S, V>,
-    initialValue?: V,
   )
   constructor(
     source: S,
     thenOrBehavior: DeriverThen<S, V> | DeriverBehavior<S, V>,
-    initialValue?: V,
   ) {
     super()
 
@@ -191,8 +195,8 @@ export class Deriver<S extends Readables, V>
 
     this.#src = makeObservable(source).pipe(asyncMap(safeThen))
 
-    if (!(arguments.length <= 2)) {
-      this.#src = this.#src.pipe(defaultWith(initialValue as V))
+    if ('initial' in behavior) {
+      this.#src = this.#src.pipe(defaultWith(behavior.initial as V))
     }
 
     this.#src = this.#src.pipe(
@@ -209,13 +213,13 @@ export class Deriver<S extends Readables, V>
   }
 }
 
-interface WriteDeriverSyncBehavior<S extends Readables, V>
+export interface WriteDeriverSyncBehavior<S extends Readables, V>
   extends DeriverSyncBehavior<S, V>,
     Partial<Observer<V>> {}
-interface WriteDeriverAsyncBehavior<S extends Readables, V>
+export interface WriteDeriverAsyncBehavior<S extends Readables, V>
   extends DeriverAsyncBehavior<S, V>,
     Partial<Observer<V>> {}
-interface WriteDeriverBehavior<S extends Readables, V>
+export interface WriteDeriverBehavior<S extends Readables, V>
   extends DeriverBehavior<S, V>,
     Partial<Observer<V>> {}
 
@@ -228,27 +232,12 @@ export class WriteDeriver<S extends Readables, V>
   #error: Observer<V>['error'] | undefined
   #complete: Observer<V>['complete'] | undefined
 
-  constructor(
-    source: S,
-    behavior: WriteDeriverAsyncBehavior<S, V>,
-    initialValue?: V,
-  )
-  constructor(
-    source: S,
-    behavior: WriteDeriverSyncBehavior<S, V>,
-    initialValue?: V,
-  )
-  constructor(source: S, behavior: WriteDeriverBehavior<S, V>, initialValue?: V)
-  constructor(
-    source: S,
-    behavior: WriteDeriverBehavior<S, V>,
-    initialValue?: V,
-  ) {
+  constructor(source: S, behavior: WriteDeriverAsyncBehavior<S, V>)
+  constructor(source: S, behavior: WriteDeriverSyncBehavior<S, V>)
+  constructor(source: S, behavior: WriteDeriverBehavior<S, V>)
+  constructor(source: S, behavior: WriteDeriverBehavior<S, V>) {
     super()
-    this.#src =
-      arguments.length <= 2
-        ? new Deriver(source, behavior)
-        : new Deriver(source, behavior, initialValue)
+    this.#src = new Deriver(source, behavior)
     this.#next = behavior.next
     this.#error = behavior.error
     this.#complete = behavior.complete
@@ -282,47 +271,42 @@ type DerivedOptions<S extends Readables, V> =
 function derived<S extends Readables, V>(
   source: S,
   behavior: WriteDeriverAsyncBehavior<S, V>,
-  initialValue?: V,
-): WriteDeriver<S, V>
-function derived<S extends Readables, V>(
-  source: S,
-  behavior: WriteDeriverSyncBehavior<S, V>,
-  initialValue?: V,
+  initial?: V,
 ): WriteDeriver<S, V>
 function derived<S extends Readables, V>(
   source: S,
   behavior: WriteDeriverBehavior<S, V>,
-  initialValue?: V,
+  initial?: V,
 ): WriteDeriver<S, V>
 
 function derived<S extends Readables, V>(
   source: S,
   thenOrBehavior: DeriverAsyncThen<S, V> | DeriverAsyncBehavior<S, V>,
-  initialValue?: V,
+  initial?: V,
 ): Deriver<S, V>
 function derived<S extends Readables, V>(
   source: S,
   thenOrBehavior: DerivedOptions<S, V>,
-  initialValue?: V,
+  initial?: V,
 ): Deriver<S, V> | WriteDeriver<S, V>
 
 function derived<S extends Readables, V>(
   source: S,
   thenOrBehavior: DerivedOptions<S, V>,
-  initialValue?: V,
+  initial?: V,
 ): Deriver<S, V> | WriteDeriver<S, V> {
   // Make writable derived.
   if (typeof thenOrBehavior === 'object') {
     const behavior = thenOrBehavior
     return arguments.length <= 2
       ? new WriteDeriver(source, behavior)
-      : new WriteDeriver(source, behavior, initialValue)
+      : new WriteDeriver(source, { ...behavior, initial })
   }
   // Make readable derived.
   const then = thenOrBehavior
   return arguments.length <= 2
     ? new Deriver(source, then)
-    : new Deriver(source, then, initialValue)
+    : new Deriver(source, { then, initial })
 }
 
 export default derived

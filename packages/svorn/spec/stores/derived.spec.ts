@@ -31,7 +31,7 @@ export const describeDerivable = <
   newDeriverWithInitial: (
     source: ConstructorParameters<D>[0],
     then: ConstructorParameters<typeof Deriver>[1],
-    initialValue: unknown,
+    initial: unknown,
   ) => Observable<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
 ) =>
   describe('Derivable', () => {
@@ -361,7 +361,11 @@ export const describeDerivable = <
 describe('Deriver', () => {
   describeDerivable<typeof Deriver>(
     (source, then) => new Deriver(source, then),
-    (source, then, initialValue) => new Deriver(source, then, initialValue),
+    (source, then, initial) =>
+      new Deriver(
+        source,
+        typeof then === 'function' ? { then, initial } : { ...then, initial },
+      ),
   )
 })
 
@@ -372,8 +376,8 @@ describe('WriteDeriver', () => {
     typeof then === 'function' ? { then } : then
   describeDerivable<typeof WriteDeriver>(
     (source, then) => new WriteDeriver(source, makeWriteDeriverBehavior(then)),
-    (source, then, initialValue) =>
-      new WriteDeriver(source, makeWriteDeriverBehavior(then), initialValue),
+    (source, then, initial) =>
+      new WriteDeriver(source, { ...makeWriteDeriverBehavior(then), initial }),
   )
 
   describe('with observable source', () => {
