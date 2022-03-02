@@ -144,10 +144,11 @@ export class Deriver<S extends Readables, V>
   #ready: DeriverReady = DeriverReady.Ok
   #i = 0
 
-  constructor(source: S, then: DeriverAsyncThen<S, V>, initialValue?: V)
-  constructor(source: S, then: DeriverSyncThen<S, V>, initialValue?: V)
-  constructor(source: S, behavior: DeriverAsyncBehavior<S, V>, initialValue?: V)
-  constructor(source: S, behavior: DeriverSyncBehavior<S, V>, initialValue?: V)
+  constructor(
+    source: S,
+    thenOrBehavior: DeriverAsyncThen<S, V> | DeriverAsyncBehavior<S, V>,
+    initialValue?: V,
+  )
   constructor(
     source: S,
     thenOrBehavior: DeriverThen<S, V> | DeriverBehavior<S, V>,
@@ -229,12 +230,12 @@ export class WriteDeriver<S extends Readables, V>
 
   constructor(
     source: S,
-    behavior: WriteDeriverSyncBehavior<S, V>,
+    behavior: WriteDeriverAsyncBehavior<S, V>,
     initialValue?: V,
   )
   constructor(
     source: S,
-    behavior: WriteDeriverAsyncBehavior<S, V>,
+    behavior: WriteDeriverSyncBehavior<S, V>,
     initialValue?: V,
   )
   constructor(source: S, behavior: WriteDeriverBehavior<S, V>, initialValue?: V)
@@ -296,12 +297,7 @@ function derived<S extends Readables, V>(
 
 function derived<S extends Readables, V>(
   source: S,
-  then: DeriverAsyncThen<S, V>,
-  initialValue?: V,
-): Deriver<S, V>
-function derived<S extends Readables, V>(
-  source: S,
-  then: DeriverSyncThen<S, V>,
+  thenOrBehavior: DeriverAsyncThen<S, V> | DeriverAsyncBehavior<S, V>,
   initialValue?: V,
 ): Deriver<S, V>
 function derived<S extends Readables, V>(
