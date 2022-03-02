@@ -141,6 +141,20 @@ export const describeDerivable = <
         })
       })
 
+      it('supports optional & duplicate emission via set', () => {
+        runTestScheduler(({ expectObservable, cold }) => {
+          const src = ' a-B----c-D----|'
+          const want = '--(Bb)---(Dd)-|'
+          const d = newDeriver(cold(src), (v, set) => {
+            if (v === v.toUpperCase()) {
+              set(v)
+              set(v.toLowerCase())
+            }
+          })
+          expectObservable(d).toBe(want)
+        })
+      })
+
       it('skips async emission when source closed meanwhile', () => {
         runTestScheduler(({ expectObservable, cold }) => {
           // Extra notifications are checked by runTestScheduler().
