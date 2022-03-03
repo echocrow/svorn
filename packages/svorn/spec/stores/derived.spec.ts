@@ -27,12 +27,12 @@ export const describeDerivable = <
   newDeriver: (
     source: Readables,
     then: ConstructorParameters<typeof Deriver>[1],
-  ) => Observable<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+  ) => Observable<any>,
   newDeriverWithInitial: (
     source: ConstructorParameters<D>[0],
     then: ConstructorParameters<typeof Deriver>[1],
     initial: unknown,
-  ) => Observable<any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+  ) => Observable<any>,
 ) =>
   describe('Derivable', () => {
     it.each(['', '0', 0, 123, true, 'def'] as const)(

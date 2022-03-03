@@ -20,8 +20,8 @@ import type { Readable, Writable } from '../types'
 type ReadableInterop<V> = Readable<V> | Subscribable<V>
 
 export type Readables =
-  | ReadableInterop<any> // eslint-disable-line @typescript-eslint/no-explicit-any
-  | Readonly<Array<ReadableInterop<any> | any>> // eslint-disable-line @typescript-eslint/no-explicit-any
+  | ReadableInterop<any>
+  | Readonly<Array<ReadableInterop<any> | any>>
 
 type ReadablesValue<S extends Readables> = S extends ReadableInterop<infer V>
   ? V
