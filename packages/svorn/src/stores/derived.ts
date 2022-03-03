@@ -1,11 +1,11 @@
 import {
-  type Observer,
   type Subscribable,
   type Subscriber,
   type Unsubscribable,
   combineLatest,
   filter,
   map,
+  NextObserver,
   Observable,
   of,
   shareReplay,
@@ -213,30 +213,45 @@ export class Deriver<S extends Readables, V>
   }
 }
 
+interface WriteDeriverBaseBehavior<S extends Readables, V>
+  extends DeriverBaseBehavior<S, V>,
+    Omit<NextObserver<V>, 'closed'> {}
+
 export interface WriteDeriverSyncBehavior<S extends Readables, V>
   extends DeriverSyncBehavior<S, V>,
-    Partial<Observer<V>> {}
+    WriteDeriverBaseBehavior<S, V> {}
 export interface WriteDeriverAsyncBehavior<S extends Readables, V>
   extends DeriverAsyncBehavior<S, V>,
-    Partial<Observer<V>> {}
+    WriteDeriverBaseBehavior<S, V> {}
 export interface WriteDeriverBehavior<S extends Readables, V>
   extends DeriverBehavior<S, V>,
-    Partial<Observer<V>> {}
+    WriteDeriverBaseBehavior<S, V> {}
+
+export type IsObserver<
+  B extends WriteDeriverBehavior<any, any> | DeriverBehavior<any, any>,
+> = B extends WriteDeriverBehavior<any, any> ? true : false
+
+export const behaviorIsObserver = <
+  S extends Readables,
+  V,
+  B extends WriteDeriverBehavior<S, V> | DeriverBehavior<S, V>,
+>(
+  behavior: B,
+): IsObserver<B> => ('next' in behavior) as any
 
 export abstract class DeriverWriter<V>
   extends DerivedWriter<V>
   implements Writable<V>
 {
-  #behavior: Partial<Observer<V>>
+  #behavior: WriteDeriverBehavior<any, V>
 
-  constructor(behavior: Partial<Observer<V>>) {
+  constructor(behavior: WriteDeriverBehavior<any, V>) {
     super()
     this.#behavior = behavior
   }
 
   next(value: V): void {
-    if (!this.#behavior.next) throw new TypeError('next is not implemented')
-    this.#behavior.next?.(value)
+    this.#behavior.next(value)
   }
 
   error(err: unknown): void {
@@ -275,11 +290,6 @@ type DerivedOptions<S extends Readables, V> =
   | DeriverBehavior<S, V>
   | WriteDeriverBehavior<S, V>
 
-export const behaviorIsObserver = <S extends Readables, V>(
-  behavior: WriteDeriverBehavior<S, V>,
-): boolean =>
-  'next' in behavior || 'error' in behavior || 'complete' in behavior
-
 function derived<S extends Readables, V>(
   source: S,
   behavior: WriteDeriverAsyncBehavior<S, V>,
@@ -300,20 +310,20 @@ function derived<S extends Readables, V>(
   source: S,
   thenOrBehavior: DerivedOptions<S, V>,
   initial?: V,
-): Deriver<S, V> | WriteDeriver<S, V>
+): Deriver<S, V>
 
 function derived<S extends Readables, V>(
   source: S,
   thenOrBehavior: DerivedOptions<S, V>,
   initial?: V,
 ): Deriver<S, V> | WriteDeriver<S, V> {
-  let behavior =
+  let behavior: WriteDeriverBehavior<S, V> | DeriverBehavior<S, V> =
     typeof thenOrBehavior === 'object'
       ? thenOrBehavior
       : { then: thenOrBehavior }
   if (arguments.length >= 3) behavior = { ...behavior, initial }
   return behaviorIsObserver(behavior)
-    ? new WriteDeriver(source, behavior)
+    ? new WriteDeriver(source, behavior as WriteDeriverBehavior<S, V>)
     : new Deriver(source, behavior)
 }
 

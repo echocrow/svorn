@@ -10,6 +10,7 @@ import {
 import {
   describeReadable,
   describeWritable,
+  expectType,
   noop,
   pass,
   runTestScheduler,
@@ -373,7 +374,7 @@ describe('WriteDeriver', () => {
   const makeWriteDeriverBehavior = (
     then: ConstructorParameters<typeof Deriver>[1],
   ): ConstructorParameters<typeof WriteDeriver>[1] =>
-    typeof then === 'function' ? { then } : then
+    typeof then === 'function' ? { then, next: noop } : { next: noop, ...then }
   describeDerivable<typeof WriteDeriver>(
     (source, then) => new WriteDeriver(source, makeWriteDeriverBehavior(then)),
     (source, then, initial) =>
@@ -401,11 +402,10 @@ describe('WriteDeriver', () => {
     beforeEach(() => (s = new BehaviorSubject('0')))
 
     it.each([
-      ['next', (d: WriteDeriver<typeof s, string>) => d.next('whatever')],
       ['error', (d: WriteDeriver<typeof s, string>) => d.error('whatever')],
       ['complete', (d: WriteDeriver<typeof s, string>) => d.complete()],
     ])('throws when %s is not set but called', (_, cb) => {
-      const d = new WriteDeriver(s, { then: pass })
+      const d = new WriteDeriver(s, { then: pass, next: noop })
       expect(() => cb(d)).toThrow()
     })
   })
@@ -445,10 +445,14 @@ const describeDerivedPassingArgs = (
 describe('derived', () => {
   describe('as readable', () => {
     it('returns Deriver with then function', () => {
-      expect(derived(from([]), pass)).toBeInstanceOf(Deriver)
+      const d = derived(from([]), pass)
+      expect(d).toBeInstanceOf(Deriver)
+      expectType<Deriver<any, any>>(d)
     })
     it('returns Deriver with simple behavior', () => {
-      expect(derived(from([]), { then: pass })).toBeInstanceOf(Deriver)
+      const d = derived(from([]), { then: pass })
+      expect(d).toBeInstanceOf(Deriver)
+      expectType<Deriver<any, any>>(d)
     })
 
     describeDerivedPassingArgs((_, then) => then)
@@ -462,6 +466,7 @@ describe('derived', () => {
         next: (v: string) => s.next(v),
       })
       expect(d).toBeInstanceOf(WriteDeriver)
+      expectType<WriteDeriver<any, any>>(d)
     })
 
     describeDerivedPassingArgs((_, then) => ({ then, next: pass }))

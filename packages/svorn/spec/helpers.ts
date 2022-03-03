@@ -220,3 +220,7 @@ export const describeUpdatable = (
       })
     })
   })
+
+export const expectType = <T>(thing: T) => {
+  // pass
+}
