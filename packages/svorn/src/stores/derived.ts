@@ -268,6 +268,11 @@ type DerivedOptions<S extends Readables, V> =
   | DeriverBehavior<S, V>
   | WriteDeriverBehavior<S, V>
 
+export const behaviorIsObserver = <S extends Readables, V>(
+  behavior: WriteDeriverBehavior<S, V>,
+): boolean =>
+  'next' in behavior || 'error' in behavior || 'complete' in behavior
+
 function derived<S extends Readables, V>(
   source: S,
   behavior: WriteDeriverAsyncBehavior<S, V>,
@@ -295,18 +300,14 @@ function derived<S extends Readables, V>(
   thenOrBehavior: DerivedOptions<S, V>,
   initial?: V,
 ): Deriver<S, V> | WriteDeriver<S, V> {
-  // Make writable derived.
-  if (typeof thenOrBehavior === 'object') {
-    const behavior = thenOrBehavior
-    return arguments.length <= 2
-      ? new WriteDeriver(source, behavior)
-      : new WriteDeriver(source, { ...behavior, initial })
-  }
-  // Make readable derived.
-  const then = thenOrBehavior
-  return arguments.length <= 2
-    ? new Deriver(source, then)
-    : new Deriver(source, { then, initial })
+  let behavior =
+    typeof thenOrBehavior === 'object'
+      ? thenOrBehavior
+      : { then: thenOrBehavior }
+  if (arguments.length >= 3) behavior = { ...behavior, initial }
+  return behaviorIsObserver(behavior)
+    ? new WriteDeriver(source, behavior)
+    : new Deriver(source, behavior)
 }
 
 export default derived

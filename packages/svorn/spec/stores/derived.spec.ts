@@ -444,8 +444,11 @@ const describeDerivedPassingArgs = (
 
 describe('derived', () => {
   describe('as readable', () => {
-    it('returns Deriver', () => {
+    it('returns Deriver with then function', () => {
       expect(derived(from([]), pass)).toBeInstanceOf(Deriver)
+    })
+    it('returns Deriver with simple behavior', () => {
+      expect(derived(from([]), { then: pass })).toBeInstanceOf(Deriver)
     })
 
     describeDerivedPassingArgs((_, then) => then)
