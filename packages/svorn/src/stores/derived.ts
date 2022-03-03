@@ -223,43 +223,50 @@ export interface WriteDeriverBehavior<S extends Readables, V>
   extends DeriverBehavior<S, V>,
     Partial<Observer<V>> {}
 
-export class WriteDeriver<S extends Readables, V>
+export abstract class DeriverWriter<V>
   extends DerivedWriter<V>
   implements Writable<V>
 {
+  #behavior: Partial<Observer<V>>
+
+  constructor(behavior: Partial<Observer<V>>) {
+    super()
+    this.#behavior = behavior
+  }
+
+  next(value: V): void {
+    if (!this.#behavior.next) throw new TypeError('next is not implemented')
+    this.#behavior.next?.(value)
+  }
+
+  error(err: unknown): void {
+    if (!this.#behavior.error) throw err
+    this.#behavior.error(err)
+  }
+
+  complete(): void {
+    if (!this.#behavior.complete)
+      throw new TypeError('complete is not implemented')
+    this.#behavior.complete()
+  }
+}
+
+export class WriteDeriver<S extends Readables, V>
+  extends DeriverWriter<V>
+  implements Writable<V>
+{
   #src: Deriver<S, V>
-  #next: Observer<V>['next'] | undefined
-  #error: Observer<V>['error'] | undefined
-  #complete: Observer<V>['complete'] | undefined
 
   constructor(source: S, behavior: WriteDeriverAsyncBehavior<S, V>)
   constructor(source: S, behavior: WriteDeriverSyncBehavior<S, V>)
   constructor(source: S, behavior: WriteDeriverBehavior<S, V>)
   constructor(source: S, behavior: WriteDeriverBehavior<S, V>) {
-    super()
+    super(behavior)
     this.#src = new Deriver(source, behavior)
-    this.#next = behavior.next
-    this.#error = behavior.error
-    this.#complete = behavior.complete
   }
 
   protected _subscribe(subscriber: Subscriber<V>): Subscription {
     return this.#src.subscribe(subscriber)
-  }
-
-  next(value: V): void {
-    if (!this.#next) throw new TypeError('next is not implemented')
-    this.#next?.(value)
-  }
-
-  error(err: unknown): void {
-    if (!this.#error) throw err
-    this.#error(err)
-  }
-
-  complete(): void {
-    if (!this.#complete) throw new TypeError('complete is not implemented')
-    this.#complete()
   }
 }
 
