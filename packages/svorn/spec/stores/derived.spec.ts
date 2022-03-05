@@ -1,9 +1,9 @@
 import {
   type Subscribable,
   BehaviorSubject,
-  from,
   merge,
   Observable,
+  of,
   Subject,
   switchMap,
 } from 'rxjs'
@@ -17,30 +17,31 @@ import {
 } from 'spec/helpers'
 import derived, {
   CircularDeriverDependency,
+  DerivedOptions,
   Deriver,
+  DeriverOptions,
   Readables,
   WriteDeriver,
+  WriteDeriverBehavior,
 } from 'src/stores/derived'
 
-export const describeDerivable = <
-  D extends typeof Deriver | typeof WriteDeriver,
->(
-  newDeriver: (
-    source: Readables,
-    then: ConstructorParameters<typeof Deriver>[1],
-  ) => Observable<any>,
-  newDeriverWithInitial: (
-    source: ConstructorParameters<D>[0],
-    then: ConstructorParameters<typeof Deriver>[1],
-    initial: unknown,
-  ) => Observable<any>,
+export const describeDerivable = (
+  newDeriver: <S, V = S>(
+    source: Readables<S>,
+    then: DerivedOptions<S, V>,
+  ) => Observable<V>,
+  newDeriverWithInitial: <S, V = S>(
+    source: Readables<S>,
+    then: DerivedOptions<S, V>,
+    initial: V,
+  ) => Observable<V>,
 ) =>
   describe('Derivable', () => {
     it.each(['', '0', 0, 123, true, 'def'] as const)(
       'emits initial value synchronously (%j)',
       (v) => {
         runTestScheduler(({ expectObservable, cold }) => {
-          const d = newDeriverWithInitial(cold(''), noop, v)
+          const d = newDeriverWithInitial(cold(''), pass, v)
           expectObservable(d).toBe('d', { d: v })
         })
       },
@@ -50,7 +51,7 @@ export const describeDerivable = <
       describeReadable(
         () => {
           const s = new BehaviorSubject('__INITIAL__')
-          const r = newDeriver(s, pass)
+          const r = newDeriver<string>(s, pass)
           return [r, s]
         },
         { latestValue: '__INITIAL__' },
@@ -61,7 +62,7 @@ export const describeDerivable = <
       describeReadable(
         () => {
           const s = new BehaviorSubject('__INITIAL__')
-          const r = newDeriverWithInitial(s, pass, '__DEFAULT__')
+          const r = newDeriverWithInitial<string>(s, pass, '__DEFAULT__')
           return [r, s]
         },
         { defaultValue: '__DEFAULT__', latestValue: '__INITIAL__' },
@@ -114,19 +115,20 @@ export const describeDerivable = <
           expectObservable(d).toBe(want, { a: 'a:0' })
         })
       })
-
-      it('accepts simple values as sources', () => {
-        runTestScheduler(({ cold, expectObservable }) => {
-          const srcA = 'a-c--'
-          const want = '0-1--'
-          const d = newDeriver(
-            [cold(srcA), 'b'],
-            ([a, b]: [string, string]) => `${a}:${b}`,
-          )
-          expectObservable(d).toBe(want, { 0: 'a:b', 1: 'c:b' })
-        })
-      })
     })
+
+    /** @todo Re-add supported for non-subscribable values in array. */
+    // it('accepts simple values as sources', () => {
+    //   runTestScheduler(({ cold, expectObservable }) => {
+    //     const srcA = 'a-c--'
+    //     const want = '0-1--'
+    //     const d = newDeriver(
+    //       [cold(srcA), 'b'],
+    //       ([a, b]: [string, string]) => `${a}:${b}`,
+    //     )
+    //     expectObservable(d).toBe(want, { 0: 'a:b', 1: 'c:b' })
+    //   })
+    // })
 
     describe('with async set function', () => {
       it('emits values asynchronously via set', () => {
@@ -360,7 +362,7 @@ export const describeDerivable = <
   })
 
 describe('Deriver', () => {
-  describeDerivable<typeof Deriver>(
+  describeDerivable(
     (source, then) => new Deriver(source, then),
     (source, then, initial) =>
       new Deriver(
@@ -371,11 +373,11 @@ describe('Deriver', () => {
 })
 
 describe('WriteDeriver', () => {
-  const makeWriteDeriverBehavior = (
-    then: ConstructorParameters<typeof Deriver>[1],
-  ): ConstructorParameters<typeof WriteDeriver>[1] =>
-    typeof then === 'function' ? { then, next: noop } : { next: noop, ...then }
-  describeDerivable<typeof WriteDeriver>(
+  const makeWriteDeriverBehavior = <S, V>(
+    then: DeriverOptions<S, V>,
+  ): WriteDeriverBehavior<S, V> =>
+    typeof then === 'function' ? { then, next: pass } : { next: pass, ...then }
+  describeDerivable(
     (source, then) => new WriteDeriver(source, makeWriteDeriverBehavior(then)),
     (source, then, initial) =>
       new WriteDeriver(source, { ...makeWriteDeriverBehavior(then), initial }),
@@ -415,7 +417,7 @@ const describeDerivedPassingArgs = (
   makeDerivedOptions: (
     source: Subscribable<string>,
     then: (v: string) => string,
-  ) => Parameters<typeof derived>[1],
+  ) => DerivedOptions<string>,
 ) =>
   describe('derived args passing', () => {
     it('keeps the source and map fn', () => {
@@ -445,14 +447,14 @@ const describeDerivedPassingArgs = (
 describe('derived', () => {
   describe('as readable', () => {
     it('returns Deriver with then function', () => {
-      const d = derived(from([]), pass)
+      const d = derived(of(true), String)
       expect(d).toBeInstanceOf(Deriver)
-      expectType<Deriver<any, any>>(d)
+      expectType<Deriver<boolean, string>>(d)
     })
     it('returns Deriver with simple behavior', () => {
-      const d = derived(from([]), { then: pass })
+      const d = derived(of(true), { then: String })
       expect(d).toBeInstanceOf(Deriver)
-      expectType<Deriver<any, any>>(d)
+      expectType<Deriver<boolean, string>>(d)
     })
 
     describeDerivedPassingArgs((_, then) => then)
@@ -461,12 +463,12 @@ describe('derived', () => {
   describe('as writable', () => {
     it('returns WriteDeriver', () => {
       const s = new BehaviorSubject('0')
-      const d = derived(from('0'), {
-        then: pass,
+      const d = derived(of(true), {
+        then: String,
         next: (v: string) => s.next(v),
       })
       expect(d).toBeInstanceOf(WriteDeriver)
-      expectType<WriteDeriver<any, any>>(d)
+      expectType<WriteDeriver<boolean, string>>(d)
     })
 
     describeDerivedPassingArgs((_, then) => ({ then, next: pass }))
@@ -474,19 +476,19 @@ describe('derived', () => {
 
   it('properly types values of source array', () => {
     runTestScheduler(({ cold, expectObservable }) => {
-      const srcA = 'a-c--'
-      const srcB = 'b--d-'
+      const srcA = 'a-b--'
+      const srcB = '0--1-'
       const want = '0-12-'
 
       const a = cold(srcA)
-      const b = cold(srcB)
+      const b = cold(srcB, { 0: 0, 1: 1 })
       const d = derived(
         [a, b] as const,
-        ([a, b]) => `${a.toUpperCase()}:${b.toUpperCase()}`,
+        ([a, b]) => `${a.toUpperCase()}:${b + 5}`,
       )
 
       // This is mostly a TypeScript check, but doesn't hurt to still test.
-      expectObservable(d).toBe(want, { 0: 'A:B', 1: 'C:B', 2: 'C:D' })
+      expectObservable(d).toBe(want, { 0: 'A:5', 1: 'B:5', 2: 'B:6' })
     })
   })
 })

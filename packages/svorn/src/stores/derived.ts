@@ -19,20 +19,17 @@ import type { Readable, Writable } from '../types'
 
 type ReadableInterop<V> = Readable<V> | Subscribable<V>
 
-export type Readables =
-  | ReadableInterop<any>
-  | Readonly<Array<ReadableInterop<any> | any>>
-
-type ReadablesValue<S extends Readables> = S extends ReadableInterop<infer V>
-  ? V
-  : Readonly<{
-      [K in keyof S]: S[K] extends ReadableInterop<infer V> ? V : S[K]
-    }>
+export type Readables<V> =
+  | ReadableInterop<V>
+  | (Readonly<Array<unknown>> &
+      Readonly<{
+        [K in keyof V]: ReadableInterop<V[K]>
+      }>)
 
 export class CircularDeriverDependency extends RangeError {}
 
 const observableFromReadable = <V>(
-  readable: Readable<V> | V,
+  readable: ReadableInterop<V> | V,
 ): Observable<V> => {
   if (readable instanceof Observable) return readable
   if (
@@ -45,15 +42,15 @@ const observableFromReadable = <V>(
   return of(readable as V)
 }
 
-const makeObservable = <S extends Readables>(
-  source: S,
-): Observable<ReadablesValue<S>> =>
-  Array.isArray(source)
-    ? (combineLatest(source.map(observableFromReadable)) as Observable<
-        ReadablesValue<S>
-      >)
-    : observableFromReadable(source)
-
+const makeObservable = <V>(source: Readables<V>): Observable<V> => {
+  if (Array.isArray(source)) {
+    const sources = source.map(observableFromReadable) as unknown as Readonly<{
+      [K in keyof V]: Observable<V[K]>
+    }>
+    return combineLatest(sources)
+  }
+  return observableFromReadable(source as ReadableInterop<V>)
+}
 type DeriverCleanup = Unsubscribable | (() => void) | void
 
 type DeriverSyncSet<I, O> = (value: I) => O
@@ -62,38 +59,27 @@ type DeriverAsyncSet<I, O> = (
   set: (value: O) => void,
 ) => DeriverCleanup
 
-type DeriverSyncThen<S extends Readables, V> = DeriverSyncSet<
-  ReadablesValue<S>,
-  V
->
-type DeriverAsyncThen<S extends Readables, V> = DeriverAsyncSet<
-  ReadablesValue<S>,
-  V
->
-type DeriverThen<S extends Readables, V> =
-  | DeriverSyncThen<S, V>
-  | DeriverAsyncThen<S, V>
+type DeriverSyncThen<S, V> = DeriverSyncSet<S, V>
+type DeriverAsyncThen<S, V> = DeriverAsyncSet<S, V>
+type DeriverThen<S, V> = DeriverSyncThen<S, V> | DeriverAsyncThen<S, V>
 
 type DeriverSyncCatch<V> = DeriverSyncSet<unknown, V>
 type DeriverAsyncCatch<V> = DeriverAsyncSet<unknown, V>
 type DeriverCatch<V> = DeriverSyncCatch<V> | DeriverAsyncCatch<V>
 
-interface DeriverBaseBehavior<S extends Readables, V> {
+interface DeriverBaseBehavior<S, V> {
   initial?: V
 }
 
-export interface DeriverSyncBehavior<S extends Readables, V>
-  extends DeriverBaseBehavior<S, V> {
+export interface DeriverSyncBehavior<S, V> extends DeriverBaseBehavior<S, V> {
   then: DeriverSyncThen<S, V>
   catch?: DeriverSyncCatch<V>
 }
-export interface DeriverAsyncBehavior<S extends Readables, V>
-  extends DeriverBaseBehavior<S, V> {
+export interface DeriverAsyncBehavior<S, V> extends DeriverBaseBehavior<S, V> {
   then: DeriverAsyncThen<S, V>
   catch?: DeriverAsyncCatch<V>
 }
-export interface DeriverBehavior<S extends Readables, V>
-  extends DeriverBaseBehavior<S, V> {
+export interface DeriverBehavior<S, V> extends DeriverBaseBehavior<S, V> {
   then: DeriverThen<S, V>
   catch?: DeriverCatch<V>
 }
@@ -103,8 +89,8 @@ const runCleanup = (cleanup: Exclude<DeriverCleanup, void>): void => {
   else if (typeof cleanup.unsubscribe === 'function') cleanup.unsubscribe()
 }
 const asyncMap =
-  <S extends Readables, V>(then: DeriverAsyncThen<S, V>) =>
-  (source: Observable<ReadablesValue<S>>): Observable<V> =>
+  <S, V>(then: DeriverAsyncThen<S, V>) =>
+  (source: Observable<S>): Observable<V> =>
     new Observable((subscriber: Subscriber<V>) => {
       let cleanupOp: DeriverCleanup = undefined
       const cleanup = () => (cleanupOp = cleanupOp && runCleanup(cleanupOp))
@@ -143,26 +129,19 @@ enum DeriverReady {
   Error,
 }
 
-export class Deriver<S extends Readables, V>
-  extends DerivedReader<V>
-  implements Readable<V>
-{
+export type DeriverOptions<S, V = S> = DeriverThen<S, V> | DeriverBehavior<S, V>
+
+export class Deriver<S, V = S> extends DerivedReader<V> implements Readable<V> {
   #src: Observable<V>
   #ready: DeriverReady = DeriverReady.Ok
   #i = 0
 
   constructor(
-    source: S,
+    source: Readables<S>,
     thenOrBehavior: DeriverAsyncThen<S, V> | DeriverAsyncBehavior<S, V>,
   )
-  constructor(
-    source: S,
-    thenOrBehavior: DeriverThen<S, V> | DeriverBehavior<S, V>,
-  )
-  constructor(
-    source: S,
-    thenOrBehavior: DeriverThen<S, V> | DeriverBehavior<S, V>,
-  ) {
+  constructor(source: Readables<S>, thenOrBehavior: DeriverOptions<S, V>)
+  constructor(source: Readables<S>, thenOrBehavior: DeriverOptions<S, V>) {
     super()
 
     const behavior: DeriverBehavior<S, V> =
@@ -213,31 +192,35 @@ export class Deriver<S extends Readables, V>
   }
 }
 
-interface WriteDeriverBaseBehavior<S extends Readables, V>
+interface WriteDeriverBaseBehavior<S, V>
   extends DeriverBaseBehavior<S, V>,
     Omit<NextObserver<V>, 'closed'> {}
 
-export interface WriteDeriverSyncBehavior<S extends Readables, V>
+export interface WriteDeriverSyncBehavior<S, V>
   extends DeriverSyncBehavior<S, V>,
     WriteDeriverBaseBehavior<S, V> {}
-export interface WriteDeriverAsyncBehavior<S extends Readables, V>
+export interface WriteDeriverAsyncBehavior<S, V>
   extends DeriverAsyncBehavior<S, V>,
     WriteDeriverBaseBehavior<S, V> {}
-export interface WriteDeriverBehavior<S extends Readables, V>
+export interface WriteDeriverBehavior<S, V>
   extends DeriverBehavior<S, V>,
     WriteDeriverBaseBehavior<S, V> {}
 
 export type IsObserver<
-  B extends WriteDeriverBehavior<any, any> | DeriverBehavior<any, any>,
-> = B extends WriteDeriverBehavior<any, any> ? true : false
-
-export const behaviorIsObserver = <
-  S extends Readables,
+  S,
   V,
   B extends WriteDeriverBehavior<S, V> | DeriverBehavior<S, V>,
+> = B extends WriteDeriverBehavior<S, V> ? true : false
+
+export const behaviorIsObserver = <
+  S,
+  V,
+  B extends
+    | WriteDeriverBehavior<S, V>
+    | DeriverBehavior<S, V> = WriteDeriverBehavior<S, V>,
 >(
   behavior: B,
-): IsObserver<B> => ('next' in behavior) as any
+): IsObserver<S, V, B> => ('next' in behavior) as any
 
 export abstract class DeriverWriter<V>
   extends DerivedWriter<V>
@@ -266,16 +249,16 @@ export abstract class DeriverWriter<V>
   }
 }
 
-export class WriteDeriver<S extends Readables, V>
+export class WriteDeriver<S, V = S>
   extends DeriverWriter<V>
   implements Writable<V>
 {
   #src: Deriver<S, V>
 
-  constructor(source: S, behavior: WriteDeriverAsyncBehavior<S, V>)
-  constructor(source: S, behavior: WriteDeriverSyncBehavior<S, V>)
-  constructor(source: S, behavior: WriteDeriverBehavior<S, V>)
-  constructor(source: S, behavior: WriteDeriverBehavior<S, V>) {
+  constructor(source: Readables<S>, behavior: WriteDeriverAsyncBehavior<S, V>)
+  constructor(source: Readables<S>, behavior: WriteDeriverSyncBehavior<S, V>)
+  constructor(source: Readables<S>, behavior: WriteDeriverBehavior<S, V>)
+  constructor(source: Readables<S>, behavior: WriteDeriverBehavior<S, V>) {
     super(behavior)
     this.#src = new Deriver(source, behavior)
   }
@@ -285,35 +268,34 @@ export class WriteDeriver<S extends Readables, V>
   }
 }
 
-type DerivedOptions<S extends Readables, V> =
-  | DeriverThen<S, V>
-  | DeriverBehavior<S, V>
+export type DerivedOptions<S, V = S> =
+  | DeriverOptions<S, V>
   | WriteDeriverBehavior<S, V>
 
-function derived<S extends Readables, V>(
-  source: S,
+function derived<S, V = S>(
+  source: Readables<S>,
   behavior: WriteDeriverAsyncBehavior<S, V>,
   initial?: V,
 ): WriteDeriver<S, V>
-function derived<S extends Readables, V>(
-  source: S,
+function derived<S, V = S>(
+  source: Readables<S>,
   behavior: WriteDeriverBehavior<S, V>,
   initial?: V,
 ): WriteDeriver<S, V>
 
-function derived<S extends Readables, V>(
-  source: S,
+function derived<S, V = S>(
+  source: Readables<S>,
   thenOrBehavior: DeriverAsyncThen<S, V> | DeriverAsyncBehavior<S, V>,
   initial?: V,
 ): Deriver<S, V>
-function derived<S extends Readables, V>(
-  source: S,
+function derived<S, V = S>(
+  source: Readables<S>,
   thenOrBehavior: DerivedOptions<S, V>,
   initial?: V,
 ): Deriver<S, V>
 
-function derived<S extends Readables, V>(
-  source: S,
+function derived<S, V = S>(
+  source: Readables<S>,
   thenOrBehavior: DerivedOptions<S, V>,
   initial?: V,
 ): Deriver<S, V> | WriteDeriver<S, V> {
@@ -322,7 +304,7 @@ function derived<S extends Readables, V>(
       ? thenOrBehavior
       : { then: thenOrBehavior }
   if (arguments.length >= 3) behavior = { ...behavior, initial }
-  return behaviorIsObserver(behavior)
+  return behaviorIsObserver<S, V, typeof behavior>(behavior)
     ? new WriteDeriver(source, behavior as WriteDeriverBehavior<S, V>)
     : new Deriver(source, behavior)
 }

@@ -12,24 +12,24 @@ import {
   type DeriverAsyncBehavior,
   type DeriverBehavior,
   type IsObserver,
-  type Readables,
   type WriteDeriverAsyncBehavior,
   type WriteDeriverBehavior,
   type WriteDeriverSyncBehavior,
   behaviorIsObserver,
   Deriver,
   DeriverWriter,
+  Readables,
 } from './derived'
 
-export interface DeriverFamilyBaseBehavior<S extends Readables, V> {
-  source: S
+export interface DeriverFamilyBaseBehavior<S, V> {
+  source: Readables<S>
 }
 
-export interface DeriverFamilyAsyncBehavior<S extends Readables, V>
+export interface DeriverFamilyAsyncBehavior<S, V>
   extends DeriverAsyncBehavior<S, V>,
     DeriverFamilyBaseBehavior<S, V> {}
 
-export interface DeriverFamilyBehavior<S extends Readables, V>
+export interface DeriverFamilyBehavior<S, V>
   extends DeriverBehavior<S, V>,
     DeriverFamilyBaseBehavior<S, V> {}
 
@@ -37,11 +37,7 @@ interface Family<V, K extends FamilyKey> {
   subscribeTo(key: K, observer: InteropObserver<V>): Subscription
 }
 
-export class DeriverMember<
-  S extends Readables,
-  V,
-  K extends FamilyKey,
-> extends DerivedReader<V> {
+export class DeriverMember<S, V, K extends FamilyKey> extends DerivedReader<V> {
   #family: Family<V, K>
   #key: K
 
@@ -56,17 +52,17 @@ export class DeriverMember<
   }
 }
 
-export interface WriteDeriverFamilyAsyncBehavior<S extends Readables, V>
+export interface WriteDeriverFamilyAsyncBehavior<S, V>
   extends WriteDeriverAsyncBehavior<S, V>,
     DeriverFamilyBaseBehavior<S, V> {}
-export interface WriteDeriverFamilySyncBehavior<S extends Readables, V>
+export interface WriteDeriverFamilySyncBehavior<S, V>
   extends WriteDeriverSyncBehavior<S, V>,
     DeriverFamilyBaseBehavior<S, V> {}
-export interface WriteDeriverFamilyBehavior<S extends Readables, V>
+export interface WriteDeriverFamilyBehavior<S, V>
   extends WriteDeriverBehavior<S, V>,
     DeriverFamilyBaseBehavior<S, V> {}
 
-export class WriteDeriverMember<S extends Readables, V, K extends FamilyKey>
+export class WriteDeriverMember<S, V, K extends FamilyKey>
   extends DeriverWriter<V>
   implements Writable<V>
 {
@@ -87,12 +83,12 @@ export class WriteDeriverMember<S extends Readables, V, K extends FamilyKey>
 }
 
 export class DeriverFamily<
-  S extends Readables,
-  V,
+  S,
+  V = S,
+  K extends FamilyKey = string,
   B extends
     | WriteDeriverFamilyBehavior<S, V>
     | DeriverFamilyBehavior<S, V> = WriteDeriverFamilyBehavior<S, V>,
-  K extends FamilyKey = string,
 > implements ReadableFamily<V, K>
 {
   #sourcesCache: FamilySourceCache<Deriver<S, V>, K>
@@ -117,12 +113,12 @@ export class DeriverFamily<
 
   get(
     key: K,
-  ): IsObserver<B> extends true
+  ): IsObserver<S, V, B> extends true
     ? WriteDeriverMember<S, V, K>
     : DeriverMember<S, V, K>
   get(key: K): DeriverMember<S, V, K> | WriteDeriverMember<S, V, K> {
     const behavior = this.#getBehavior(key)
-    return behaviorIsObserver(behavior)
+    return behaviorIsObserver<S, V, typeof behavior>(behavior)
       ? new WriteDeriverMember(
           this,
           key,
@@ -132,26 +128,26 @@ export class DeriverFamily<
   }
 }
 
-function derivedFamily<S extends Readables, V, K extends FamilyKey = string>(
+function derivedFamily<S, V = S, K extends FamilyKey = string>(
   getBehavior: (key: K) => WriteDeriverFamilyAsyncBehavior<S, V>,
-): DeriverFamily<S, V, WriteDeriverFamilyAsyncBehavior<S, V>, K>
-function derivedFamily<S extends Readables, V, K extends FamilyKey = string>(
+): DeriverFamily<S, V, K, WriteDeriverFamilyAsyncBehavior<S, V>>
+function derivedFamily<S, V = S, K extends FamilyKey = string>(
   getBehavior: (key: K) => WriteDeriverFamilySyncBehavior<S, V>,
-): DeriverFamily<S, V, WriteDeriverFamilySyncBehavior<S, V>, K>
-function derivedFamily<S extends Readables, V, K extends FamilyKey = string>(
+): DeriverFamily<S, V, K, WriteDeriverFamilySyncBehavior<S, V>>
+function derivedFamily<S, V = S, K extends FamilyKey = string>(
   getBehavior: (key: K) => WriteDeriverFamilyBehavior<S, V>,
-): DeriverFamily<S, V, WriteDeriverFamilyBehavior<S, V>, K>
+): DeriverFamily<S, V, K, WriteDeriverFamilyBehavior<S, V>>
 
-function derivedFamily<S extends Readables, V, K extends FamilyKey = string>(
+function derivedFamily<S, V = S, K extends FamilyKey = string>(
   getBehavior: (key: K) => DeriverFamilyAsyncBehavior<S, V>,
-): DeriverFamily<S, V, DeriverFamilyAsyncBehavior<S, V>, K>
-function derivedFamily<S extends Readables, V, K extends FamilyKey = string>(
+): DeriverFamily<S, V, K, DeriverFamilyAsyncBehavior<S, V>>
+function derivedFamily<S, V = S, K extends FamilyKey = string>(
   getBehavior: (key: K) => DeriverFamilyBehavior<S, V>,
-): DeriverFamily<S, V, DeriverFamilyBehavior<S, V>, K>
+): DeriverFamily<S, V, K, DeriverFamilyBehavior<S, V>>
 
-function derivedFamily<S extends Readables, V, K extends FamilyKey = string>(
+function derivedFamily<S, V = S, K extends FamilyKey = string>(
   getBehavior: (key: K) => DeriverFamilyBehavior<S, V>,
-): DeriverFamily<S, V, DeriverFamilyBehavior<S, V>, K> {
+): DeriverFamily<S, V, K, DeriverFamilyBehavior<S, V>> {
   return new DeriverFamily(getBehavior)
 }
 

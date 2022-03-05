@@ -1,4 +1,4 @@
-import { BehaviorSubject, from } from 'rxjs'
+import { BehaviorSubject, of } from 'rxjs'
 import {
   describeWritable,
   expectType,
@@ -7,7 +7,9 @@ import {
 } from 'spec/helpers'
 import derivedFamily, {
   DeriverFamily,
+  DeriverFamilyBehavior,
   DeriverMember,
+  WriteDeriverFamilyBehavior,
   WriteDeriverMember,
 } from 'src/stores/derivedFamily'
 import { noop } from 'svelte/internal'
@@ -39,7 +41,7 @@ describe('DeriverFamily', () => {
 
       const oA = cold(srcA)
       const oB = cold(srcB)
-      const df = new DeriverFamily((k) => ({
+      const df = new DeriverFamily<string>((k) => ({
         source: k === 'a' ? oA : oB,
         then: (v) => v.toUpperCase(),
       }))
@@ -52,10 +54,10 @@ describe('DeriverFamily', () => {
     describe('any member', () => {
       describeWritable(() => {
         const bucket = new BehaviorSubject<string>('__DEFAULT__')
-        const df = new DeriverFamily(() => ({
+        const df = new DeriverFamily<string>(() => ({
           source: bucket,
-          then: (v: string) => v,
-          next: (v: string) => bucket.next(v),
+          then: (v) => v,
+          next: (v) => bucket.next(v),
           error: (err) => bucket.error(err),
           complete: () => bucket.complete(),
         }))
@@ -68,29 +70,46 @@ describe('DeriverFamily', () => {
 describe('derivedFamily', () => {
   describe('as readable', () => {
     it('returns DeriverFamily', () => {
-      const df = derivedFamily(() => ({ source: from([]), then: pass }))
+      const df = derivedFamily(() => ({
+        source: of(true),
+        then: (v) => String(v),
+      }))
       expect(df).toBeInstanceOf(DeriverFamily)
-      expectType<DeriverFamily<any, any, any>>(df)
+      expectType<
+        DeriverFamily<
+          boolean,
+          string,
+          string,
+          DeriverFamilyBehavior<boolean, string>
+        >
+      >(df)
 
       const d = df.get('whatever')
       expect(d).toBeInstanceOf(DeriverMember)
-      expectType<DeriverMember<any, any, any>>(d)
+      expectType<DeriverMember<string, string, string>>(d)
     })
   })
 
   describe('as writable', () => {
     it('returns DeriverFamily', () => {
       const df = derivedFamily(() => ({
-        source: from([]),
-        then: pass,
+        source: of(true),
+        then: (v) => String(v),
         next: noop,
       }))
       expect(df).toBeInstanceOf(DeriverFamily)
-      expectType<DeriverFamily<any, any, any>>(df)
+      expectType<
+        DeriverFamily<
+          boolean,
+          string,
+          string,
+          WriteDeriverFamilyBehavior<boolean, string>
+        >
+      >(df)
 
       const d = df.get('whatever')
       expect(d).toBeInstanceOf(WriteDeriverMember)
-      expectType<WriteDeriverMember<any, any, any>>(d)
+      expectType<WriteDeriverMember<string, string, string>>(d)
     })
   })
 
