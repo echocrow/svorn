@@ -37,8 +37,7 @@ export const runTestScheduler = (runner: (helpers: RunHelpers) => void) => {
     flush()
 
     // Expect no extraneous stopped notifications.
-    const hasExtraneousStoppedNotifications = stoppedNotifications.length > 0
-    expect(hasExtraneousStoppedNotifications).toBeFalsy()
+    expect(stoppedNotifications).toEqual([])
 
     rxConfig.onStoppedNotification = orgConfig.onStoppedNotification
   })
