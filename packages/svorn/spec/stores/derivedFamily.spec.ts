@@ -1,4 +1,4 @@
-import { BehaviorSubject, of } from 'rxjs'
+import { BehaviorSubject, of, shareReplay, switchMap } from 'rxjs'
 import {
   describeWritable,
   expectType,
@@ -12,6 +12,7 @@ import derivedFamily, {
   WriteDeriverFamilyBehavior,
   WriteDeriverMember,
 } from 'src/stores/derivedFamily'
+import type { Readable, Writable } from 'src/types'
 import { noop } from 'svelte/internal'
 
 import { describeDerivable } from './derived.spec'
@@ -32,7 +33,7 @@ describe('DeriverFamily', () => {
     )
   })
 
-  it('keeps track of different sources', () => {
+  it('keeps track of different members', () => {
     runTestScheduler(({ expectObservable, cold }) => {
       const srcA = ' a-b--c-'
       const srcB = ' d--e-f-'
@@ -53,8 +54,8 @@ describe('DeriverFamily', () => {
   describe('as writable', () => {
     describe('any member', () => {
       describeWritable(() => {
-        const bucket = new BehaviorSubject<string>('__DEFAULT__')
-        const df = new DeriverFamily<string>(() => ({
+        const bucket = new BehaviorSubject('__DEFAULT__')
+        const df = new DeriverFamily(() => ({
           source: bucket,
           then: (v) => v,
           next: (v) => bucket.next(v),
@@ -62,6 +63,67 @@ describe('DeriverFamily', () => {
           complete: () => bucket.complete(),
         }))
         return df.get('whatever')
+      })
+    })
+
+    it('keeps track of different members', () => {
+      runTestScheduler(({ expectObservable, cold }) => {
+        const srcA = ' a-b--c-|'
+        const srcB = ' d--e-f--|'
+        const wantA = srcA.toUpperCase()
+        const wantB = srcB.toUpperCase()
+
+        const bA = new BehaviorSubject('0')
+        const bB = new BehaviorSubject('0')
+
+        const df = new DeriverFamily<string>((k) => ({
+          source: k === 'a' ? bA : bB,
+          then: (v) => v.toLowerCase(),
+          next: (v) => (k === 'a' ? bA : bB).next(v.toUpperCase()),
+          complete: () => (k === 'a' ? bA : bB).complete(),
+        }))
+        const dA = df.get('a')
+        const dB = df.get('b')
+
+        cold(srcA).subscribe(dA)
+        cold(srcB).subscribe(dB)
+
+        expectObservable(bA).toBe(wantA)
+        expectObservable(bB).toBe(wantB)
+        expectObservable(dA).toBe(srcA)
+        expectObservable(dB).toBe(srcB)
+      })
+    })
+
+    it('catches and maps circular dependencies', () => {
+      runTestScheduler(({ hot, expectObservable }) => {
+        // Note: The synchronous value emission before the circular
+        // dependency error is not explicitly desired, but a side-effect
+        // of a current implementation detail.
+        const src = '  a--------b----------c---'
+        const loop = ' 0--1-----------0--------'
+        const wantA = 'A--(AAX)-------B----C---'
+        const wantB = 'A--(AX)--------(BB)-C---'
+
+        // const loopSrc = new BehaviorSubject(false)
+        // hot(loop, { 0: false, 1: true }).subscribe(loopSrc)
+        const loopSrc = hot(loop, { 0: false, 1: true })
+
+        const coreSrc = hot(src).pipe(shareReplay(1))
+
+        const df: DeriverFamily<string> = new DeriverFamily((k) => ({
+          source: loopSrc.pipe(
+            switchMap((loop) => {
+              if (!loop) return coreSrc
+              return k === 'a' ? df.get('b') : df.get('a')
+            }),
+          ),
+          then: (v: string) => v.toUpperCase(),
+          catch: () => 'X',
+        }))
+
+        expectObservable(df.get('a')).toBe(wantA)
+        expectObservable(df.get('b')).toBe(wantB)
       })
     })
   })
@@ -86,7 +148,7 @@ describe('derivedFamily', () => {
 
       const d = df.get('whatever')
       expect(d).toBeInstanceOf(DeriverMember)
-      expectType<DeriverMember<string, string, string>>(d)
+      expectType<Readable<string>>(d)
     })
   })
 
@@ -109,7 +171,7 @@ describe('derivedFamily', () => {
 
       const d = df.get('whatever')
       expect(d).toBeInstanceOf(WriteDeriverMember)
-      expectType<WriteDeriverMember<string, string, string>>(d)
+      expectType<Writable<string>>(d)
     })
   })
 
