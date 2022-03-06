@@ -220,15 +220,15 @@ export const behaviorIsObserver = <
     | DeriverBehavior<S, V> = WriteDeriverBehavior<S, V>,
 >(
   behavior: B,
-): IsObserver<S, V, B> => ('next' in behavior) as any
+): IsObserver<S, V, B> => ('next' in behavior) as IsObserver<S, V, B>
 
 export abstract class DeriverWriter<V>
   extends DerivedWriter<V>
   implements Writable<V>
 {
-  #behavior: WriteDeriverBehavior<any, V>
+  #behavior: NextObserver<V>
 
-  constructor(behavior: WriteDeriverBehavior<any, V>) {
+  constructor(behavior: NextObserver<V>) {
     super()
     this.#behavior = behavior
   }

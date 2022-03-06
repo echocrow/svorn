@@ -27,9 +27,6 @@ settings:
     typescript: {}
 
 rules:
-  # Allow "any", but bear in mind that with any-power comes any-responsibility.
-  '@typescript-eslint/no-explicit-any': off
-
   # Imports.
   '@typescript-eslint/no-unused-vars': off
   import/first: error
