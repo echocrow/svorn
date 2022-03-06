@@ -319,6 +319,9 @@ export const describeDerivable = (
 
       it('catches and maps circular dependencies', () => {
         runTestScheduler(({ hot, expectObservable }) => {
+          // Note: The synchronous value emission before the circular
+          // dependency error is not explicitly desired, but a side-effect
+          // of a current implementation detail.
           const src = '  a----b----'
           const wantA = '(AX)-(BX)-'
           const wantB = 'X----X----'
@@ -338,6 +341,9 @@ export const describeDerivable = (
 
       it('catches and maps circular dependencies #2', () => {
         runTestScheduler(({ hot, expectObservable }) => {
+          // Note: The synchronous value emission before the circular
+          // dependency error is not explicitly desired, but a side-effect
+          // of a current implementation detail.
           const src = '  a--------b--------c---'
           const loop = ' 0--1-----------0------'
           const wantA = 'A--(AX)--(BX)-----C---'
