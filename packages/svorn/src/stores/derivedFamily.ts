@@ -33,15 +33,14 @@ export interface DeriverFamilyBehavior<S, V>
   extends DeriverBehavior<S, V>,
     DeriverFamilyBaseBehavior<S, V> {}
 
-interface Family<V, K extends FamilyKey> {
-  subscribeTo(key: K, observer: InteropObserver<V>): Subscription
-}
-
 export class DeriverMember<S, V, K extends FamilyKey> extends DerivedReader<V> {
-  #family: Family<V, K>
+  #family: DeriverFamily<S, V, K, DeriverFamilyBehavior<S, V>>
   #key: K
 
-  constructor(family: Family<V, K>, key: K) {
+  constructor(
+    family: DeriverFamily<S, V, K, DeriverFamilyBehavior<S, V>>,
+    key: K,
+  ) {
     super()
     this.#family = family
     this.#key = key
@@ -69,7 +68,7 @@ export class WriteDeriverMember<S, V, K extends FamilyKey>
   #readMember: DeriverMember<S, V, K>
 
   constructor(
-    family: Family<V, K>,
+    family: DeriverFamily<S, V, K, DeriverFamilyBehavior<S, V>>,
     key: K,
     behavior: WriteDeriverFamilyBehavior<S, V>,
   ) {
@@ -107,6 +106,7 @@ export class DeriverFamily<
     })
   }
 
+  /** @internal */
   subscribeTo(key: K, observerOrNext: InteropObserver<V>): Subscription {
     return this.#sourcesCache.subscribe(key, observerOrNext)
   }
