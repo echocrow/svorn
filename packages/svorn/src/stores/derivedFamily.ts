@@ -2,12 +2,7 @@ import type { Subscriber, Subscription } from 'rxjs'
 
 import DerivedReader from '../helpers/DerivedReader'
 import FamilySourceCache from '../helpers/FamilySourceCache'
-import type {
-  FamilyKey,
-  InteropObserver,
-  ReadableFamily,
-  Writable,
-} from '../types'
+import type { FamilyKey, ReadableFamily, Writable } from '../types'
 import {
   type DeriverAsyncBehavior,
   type DeriverBehavior,
@@ -33,21 +28,29 @@ export interface DeriverFamilyBehavior<S, V>
   extends DeriverBehavior<S, V>,
     DeriverFamilyBaseBehavior<S, V> {}
 
-export class DeriverMember<S, V, K extends FamilyKey> extends DerivedReader<V> {
-  #family: DeriverFamily<S, V, K, DeriverFamilyBehavior<S, V>>
+export class DeriverMember<
+  S,
+  V,
+  K extends FamilyKey,
+  B extends DeriverFamilyBehavior<S, V>,
+> extends DerivedReader<V> {
+  #familySource: FamilySourceCache<Deriver<S, V>, K, B>
   #key: K
+  #behavior: B
 
   constructor(
-    family: DeriverFamily<S, V, K, DeriverFamilyBehavior<S, V>>,
+    familySource: FamilySourceCache<Deriver<S, V>, K, B>,
     key: K,
+    behavior: B,
   ) {
     super()
-    this.#family = family
+    this.#familySource = familySource
     this.#key = key
+    this.#behavior = behavior
   }
 
   protected _subscribe(subject: Subscriber<V>): Subscription {
-    return this.#family.subscribeTo(this.#key, subject)
+    return this.#familySource.subscribe(this.#key, subject, this.#behavior)
   }
 }
 
@@ -61,19 +64,24 @@ export interface WriteDeriverFamilyBehavior<S, V>
   extends WriteDeriverBehavior<S, V>,
     DeriverFamilyBaseBehavior<S, V> {}
 
-export class WriteDeriverMember<S, V, K extends FamilyKey>
+export class WriteDeriverMember<
+    S,
+    V,
+    K extends FamilyKey,
+    B extends WriteDeriverFamilyBehavior<S, V>,
+  >
   extends DeriverWriter<V>
   implements Writable<V>
 {
-  #readMember: DeriverMember<S, V, K>
+  #readMember: DeriverMember<S, V, K, B>
 
   constructor(
-    family: DeriverFamily<S, V, K, DeriverFamilyBehavior<S, V>>,
+    familySource: FamilySourceCache<Deriver<S, V>, K, B>,
     key: K,
-    behavior: WriteDeriverFamilyBehavior<S, V>,
+    behavior: B,
   ) {
     super(behavior)
-    this.#readMember = new DeriverMember(family, key)
+    this.#readMember = new DeriverMember(familySource, key, behavior)
   }
 
   protected _subscribe(subscriber: Subscriber<V>): Subscription {
@@ -90,7 +98,11 @@ export class DeriverFamily<
     | DeriverFamilyBehavior<S, V> = WriteDeriverFamilyBehavior<S, V>,
 > implements ReadableFamily<V, K>
 {
-  #sourcesCache: FamilySourceCache<Deriver<S, V>, K>
+  #sourcesCache: FamilySourceCache<
+    Deriver<S, V>,
+    K,
+    DeriverFamilyBehavior<S, V>
+  >
   #getBehavior: (key: K) => B
 
   constructor(getBehavior: (key: K) => WriteDeriverFamilyAsyncBehavior<S, V>)
@@ -100,31 +112,25 @@ export class DeriverFamily<
   constructor(getBehavior: (key: K) => DeriverFamilyBehavior<S, V>)
   constructor(getBehavior: (key: K) => B) {
     this.#getBehavior = getBehavior
-    this.#sourcesCache = new FamilySourceCache((key) => {
-      const behavior = getBehavior(key)
-      return new Deriver(behavior.source, behavior)
-    })
-  }
-
-  /** @internal */
-  subscribeTo(key: K, observerOrNext: InteropObserver<V>): Subscription {
-    return this.#sourcesCache.subscribe(key, observerOrNext)
+    this.#sourcesCache = new FamilySourceCache(
+      (_key, _k, behavior) => new Deriver(behavior.source, behavior),
+    )
   }
 
   get(
     key: K,
   ): IsObserver<S, V, B> extends true
-    ? WriteDeriverMember<S, V, K>
-    : DeriverMember<S, V, K>
-  get(key: K): DeriverMember<S, V, K> | WriteDeriverMember<S, V, K> {
+    ? WriteDeriverMember<S, V, K, B & WriteDeriverFamilyBehavior<S, V>>
+    : DeriverMember<S, V, K, B>
+  get(key: K) {
     const behavior = this.#getBehavior(key)
-    return behaviorIsObserver<S, V, typeof behavior>(behavior)
+    return behaviorIsObserver<S, V, B>(behavior)
       ? new WriteDeriverMember(
-          this,
+          this.#sourcesCache,
           key,
-          behavior as WriteDeriverFamilyBehavior<S, V>,
+          behavior as B & WriteDeriverFamilyBehavior<S, V>,
         )
-      : new DeriverMember(this, key)
+      : new DeriverMember(this.#sourcesCache, key, behavior)
   }
 }
 
@@ -145,9 +151,14 @@ function derivedFamily<S, V = S, K extends FamilyKey = string>(
   getBehavior: (key: K) => DeriverFamilyBehavior<S, V>,
 ): DeriverFamily<S, V, K, DeriverFamilyBehavior<S, V>>
 
-function derivedFamily<S, V = S, K extends FamilyKey = string>(
-  getBehavior: (key: K) => DeriverFamilyBehavior<S, V>,
-): DeriverFamily<S, V, K, DeriverFamilyBehavior<S, V>> {
+function derivedFamily<
+  S,
+  V = S,
+  K extends FamilyKey = string,
+  B extends
+    | WriteDeriverFamilyBehavior<S, V>
+    | DeriverFamilyBehavior<S, V> = WriteDeriverFamilyBehavior<S, V>,
+>(getBehavior: (key: K) => B): DeriverFamily<S, V, K, B> {
   return new DeriverFamily(getBehavior)
 }
 

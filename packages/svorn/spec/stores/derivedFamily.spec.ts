@@ -9,7 +9,7 @@ import derivedFamily, {
   DeriverFamily,
   DeriverFamilyBehavior,
   DeriverMember,
-  WriteDeriverFamilyBehavior,
+  WriteDeriverFamilySyncBehavior,
   WriteDeriverMember,
 } from 'src/stores/derivedFamily'
 import type { Readable, Writable } from 'src/types'
@@ -49,6 +49,26 @@ describe('DeriverFamily', () => {
       expectObservable(df.get('a')).toBe(wantA)
       expectObservable(df.get('b')).toBe(wantB)
     })
+  })
+
+  it('does not excessively rerun behavior getter', () => {
+    const getBehavior = jest.fn(() => ({
+      source: of(true),
+      then: (v: boolean) => v,
+    }))
+
+    const df = new DeriverFamily(getBehavior)
+    expect(getBehavior).toBeCalledTimes(0)
+
+    const d0 = df.get('whatever')
+    expect(getBehavior).toBeCalledTimes(1)
+    d0.subscribe(noop).unsubscribe()
+    expect(getBehavior).toBeCalledTimes(1)
+
+    const d1 = df.get('someOtherKey')
+    expect(getBehavior).toBeCalledTimes(2)
+    d1.subscribe(noop).unsubscribe()
+    expect(getBehavior).toBeCalledTimes(2)
   })
 
   describe('as writable', () => {
@@ -165,7 +185,7 @@ describe('derivedFamily', () => {
           boolean,
           string,
           string,
-          WriteDeriverFamilyBehavior<boolean, string>
+          WriteDeriverFamilySyncBehavior<boolean, string>
         >
       >(df)
 

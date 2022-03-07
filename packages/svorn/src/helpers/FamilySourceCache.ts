@@ -21,16 +21,20 @@ interface FamilySourceCacheConfig<
   finalize?: (key: K, k: string) => void
 }
 
-class FamilySourceCache<S extends Observable<unknown>, K extends FamilyKey> {
+class FamilySourceCache<
+  S extends Observable<unknown>,
+  K extends FamilyKey,
+  C = void,
+> {
   #cache: Record<string, [source: S, subject: Observable<ObservedValueOf<S>>]> =
     {}
 
-  #source: (key: K, k: string) => S
+  #source: (key: K, k: string, context: C) => S
 
   #options: FamilySourceCacheConfig<S, K>
 
   constructor(
-    source: (key: K, k: string) => S,
+    source: (key: K, k: string, context: C) => S,
     options: FamilySourceCacheConfig<S, K> = {},
   ) {
     this.#source = source
@@ -40,12 +44,13 @@ class FamilySourceCache<S extends Observable<unknown>, K extends FamilyKey> {
   subscribe(
     key: K,
     observerOrNext: InteropObserver<ObservedValueOf<S>>,
+    context: C,
   ): Subscription {
     const k = stringify(key)
     let cached = this.#cache[k]
     const isFirst = !cached
     if (!cached) {
-      const src = this.#source(key, k)
+      const src = this.#source(key, k, context)
       cached = this.#cache[k] = [
         src,
         (src as Observable<ObservedValueOf<S>>).pipe(
