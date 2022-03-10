@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Sheet from '$lib/components/Sheet.svelte'
+  import Demo from '$lib/components/Demo.svelte'
 </script>
 
-<Sheet />
+<Demo />

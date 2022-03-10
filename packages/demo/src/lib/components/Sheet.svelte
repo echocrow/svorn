@@ -1,52 +1,27 @@
 <script lang="ts">
-  import { derivedSheet } from '$lib/store'
+  import { nameCol, nameRow } from '$lib/cells'
+  import { colsLen, rowsLen } from '$lib/store'
 
-  // import { derivedSheet } from '$lib/store'
   import Cell from './Cell.svelte'
-  import CellWriter from './CellWriter.svelte'
-  import StoreLog from './StoreLog.svelte'
-  import ToggleWrapper from './ToggleWrapper.svelte'
 
-  export let cols = 9
-  export let rows = 9
+  $: cols = $colsLen
+  $: rows = $rowsLen
 </script>
 
 <table>
+  <tr>
+    <th />
+    {#each Array(cols) as _, col}
+      <th scope="col">{nameCol(col)}</th>
+    {/each}
+  </tr>
+
   {#each Array(rows) as _, row}
     <tr>
+      <th scope="row">{nameRow(row)}</th>
       {#each Array(cols) as _, col}
         <td>
-          <ToggleWrapper>
-            <Cell {row} {col} />
-          </ToggleWrapper>
-        </td>
-      {/each}
-    </tr>
-  {/each}
-</table>
-
-<hr />
-
-<ToggleWrapper>
-  <StoreLog />
-</ToggleWrapper>
-
-<hr />
-
-<ToggleWrapper>
-  <CellWriter {cols} {rows} />
-</ToggleWrapper>
-
-<hr />
-
-<table>
-  {#each Array(rows) as _, row}
-    <tr>
-      {#each Array(cols) as _, col}
-        <td>
-          <ToggleWrapper>
-            <Cell {row} {col} src={derivedSheet} />
-          </ToggleWrapper>
+          <Cell {col} {row} />
         </td>
       {/each}
     </tr>
@@ -60,5 +35,7 @@
   td {
     border: 1px solid currentColor;
     padding: 0.25em;
+    min-width: 10ch;
+    padding: 0;
   }
 </style>

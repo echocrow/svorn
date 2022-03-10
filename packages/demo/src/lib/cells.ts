@@ -2,7 +2,7 @@ const aCharCode = 'A'.charCodeAt(0)
 const zCharCode = 'Z'.charCodeAt(0)
 const azBase = zCharCode - aCharCode + 1
 
-export type CellCoord = readonly [row: number, col: number]
+export type CellCoord = readonly [col: number, row: number]
 
 const nameColRec = (col: number, acc = ''): string => {
   if (col < 0) return acc
@@ -15,16 +15,12 @@ export const nameCol = (col: number): string => nameColRec(col)
 
 export const nameRow = (row: number): string => `${row + 1}`
 
-export const joinNames = (rowName: string, colName: string): string =>
-  `${colName}${rowName}`
+export const nameCell = (col: number, row: number): string =>
+  `${nameCol(col)}${nameRow(row)}`
 
-export const nameCell = (row: number, col: number): string =>
-  joinNames(nameRow(row), nameCol(col))
+const parseRow = (rowName: string): number => (parseInt(rowName, 10) || 0) - 1
 
-export const parseRow = (rowName: string): number =>
-  (parseInt(rowName, 10) || 0) - 1
-
-export const parseCol = (colName: string): number => {
+const parseCol = (colName: string): number => {
   let col = 0
   for (const c of colName) {
     const v = c.charCodeAt(0) - aCharCode + 1
