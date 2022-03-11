@@ -213,13 +213,31 @@ export const describeDerivable = (
       })
     })
 
-    it('supports custom RxJS subscribable', () => {
+    it('supports custom RxJS subscribable as source', () => {
       runTestScheduler(({ expectObservable, cold }) => {
         const src = ' a-b--c--|'
         const want = 'a-b--c--|'
         const s: Subscribable<string> = {
           subscribe: (observer) => cold(src).subscribe(observer),
         }
+        const d = newDeriver(s, pass)
+        expectObservable(d).toBe(want)
+      })
+    })
+    it('supports another deriver as source', () => {
+      runTestScheduler(({ expectObservable, cold }) => {
+        const src = ' a-b--c--|'
+        const want = 'a-b--c--|'
+        const s = newDeriver(cold(src), pass)
+        const d = newDeriver(s, pass)
+        expectObservable(d).toBe(want)
+      })
+    })
+    it('supports derived as source', () => {
+      runTestScheduler(({ expectObservable, cold }) => {
+        const src = ' a-b--c--|'
+        const want = 'a-b--c--|'
+        const s = derived(cold(src), pass)
         const d = newDeriver(s, pass)
         expectObservable(d).toBe(want)
       })
@@ -248,7 +266,7 @@ export const describeDerivable = (
       })
     })
 
-    it('is subscribes to source only while being subscribes to ', () => {
+    it('subscribes to source only while being subscribes to ', () => {
       runTestScheduler(({ hot, expectObservable, expectSubscriptions }) => {
         const sub1 = '      --^--!----'
         const sub2 = '      ----^--!--'
