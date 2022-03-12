@@ -14,6 +14,10 @@ export const setCurrCellCoords = (col: number, row: number) =>
     clamp(0, col, colsLen.getValue() - 1),
     clamp(0, row, rowsLen.getValue() - 1),
   ])
+export const moveCurrCellCoords = (col: number, row: number) => {
+  const [currCol, currRow] = currCellCoords.getValue()
+  setCurrCellCoords(currCol + col, currRow + row)
+}
 
 export const currCellName = derived(currCellCoords, {
   then: ([col, row]) => nameCell(col, row),
