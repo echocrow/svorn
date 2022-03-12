@@ -54,19 +54,10 @@
 
 <input
   type="text"
+  class="absolute inset-0 text-black bg-white"
   {name}
   bind:this={inputEl}
   bind:value={text}
   on:keydown={onKeydown}
   on:blur={onBlur}
 />
-
-<style>
-  input {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-  }
-</style>

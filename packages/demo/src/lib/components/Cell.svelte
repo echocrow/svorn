@@ -32,20 +32,10 @@
   }
 </script>
 
-<button bind:this={btn} on:click|preventDefault={onClick}>
+<button
+  bind:this={btn}
+  on:click|preventDefault={onClick}
+  class="block w-full leading-none p-2"
+>
   {$val}
 </button>
-
-<style>
-  button {
-    display: block;
-    width: 100%;
-    height: auto;
-    padding: 0.5em;
-    border: 0;
-    background: none;
-    color: inherit;
-    line-height: 1;
-    cursor: pointer;
-  }
-</style>

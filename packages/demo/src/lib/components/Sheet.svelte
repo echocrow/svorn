@@ -78,7 +78,12 @@
   }
 </script>
 
-<table on:keydown={onKeydown} bind:this={self} tabindex="-1">
+<table
+  on:keydown={onKeydown}
+  bind:this={self}
+  tabindex="-1"
+  class="outline-none"
+>
   <tr>
     <th />
     {#each Array(cols) as _, col}
@@ -95,7 +100,9 @@
           <Cell {col} {row} {isSelected} on:editstart={onEditstart} />
 
           {#if isSelected}
-            <div class="selected" />
+            <div
+              class="absolute inset-0 border-width-2 border-current pointer-events-none"
+            />
             {#if isEditing}
               <CellInput {col} {row} {resumeEdit} on:editend={onEditend} />
             {/if}
@@ -107,25 +114,10 @@
 </table>
 
 <style>
-  table {
-    border-collapse: collapse;
-    outline: 0;
-  }
   td {
     position: relative;
     border: 1px solid currentColor;
-    padding: 0.25em;
-    min-width: 10ch;
     padding: 0;
-  }
-
-  .selected {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    box-shadow: inset 0 0 0 2px currentColor;
-    pointer-events: none;
+    min-width: 10ch;
   }
 </style>

@@ -6,6 +6,8 @@
   },
   "eslint.probe": ["svelte"],
   "eslint.validate": ["javascript", "typescript", "svelte"],
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
   "cSpell.words": [
     "Readables",
     "sveltejs",
