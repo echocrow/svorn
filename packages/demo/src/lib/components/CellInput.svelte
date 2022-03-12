@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher, onMount } from 'svelte'
+  import { createEventDispatcher } from 'svelte'
 
   import { nameCell } from '$lib/cells'
   import { cells } from '$lib/store'
@@ -7,57 +7,70 @@
   export let row: number
   export let col: number
   export let resumeEdit: boolean
+  export let autofocus = false
 
-  const name = nameCell(col, row)
+  $: name = nameCell(col, row)
+  $: cell = cells.get(name)
 
-  let inputEl: HTMLInputElement
-  let text = resumeEdit ? cells.getValue(name) : ''
-  let done = false
+  let dirty = false
+  let focused = false
+  $: text = !dirty && !focused ? $cell : resumeEdit ? cells.getValue(name) : ''
+  const reset = () => {
+    text = cells.getValue(name)
+    dirty = false
+  }
 
   const dispatch = createEventDispatcher()
-  const endEdit = () => dispatch('editend', { row, col })
+  const dispatchDone = () => dispatch('done')
 
-  const commit = () => {
-    if (done) return
-    done = true
-    cells.get(name).next(text)
-    endEdit()
+  const submit = () => {
+    if (dirty) {
+      cells.next(name, text)
+      reset()
+    }
+    dispatchDone()
   }
-  const discard = () => {
-    done = true
-    endEdit()
+  const cancel = () => {
+    reset()
+    dispatchDone()
   }
+
+  const onInput = () => (dirty = true)
 
   const onKeydown = (e: KeyboardEvent) => {
     let { key } = e
     if (key === 'Enter') {
       e.preventDefault()
       e.stopPropagation()
-      commit()
+      submit()
       return
     }
     if (key === 'Escape') {
       e.preventDefault()
       e.stopPropagation()
-      discard()
+      cancel()
       return
     }
   }
 
-  const onBlur = () => commit()
+  const onFocus = () => (focused = true)
+  const onBlur = () => {
+    focused = false
+    submit()
+  }
 
-  onMount(() => {
-    inputEl?.focus()
-    return () => commit()
-  })
+  // Circumvent a11y-autofocus warning.
+  const autofocusProps = autofocus ? { autofocus: true } : {}
 </script>
 
 <input
   type="text"
-  class="absolute inset-0 text-black bg-white"
+  class="w-full min-h-full text-black bg-white"
   {name}
-  bind:this={inputEl}
+  {...autofocusProps}
   bind:value={text}
   on:keydown={onKeydown}
+  on:input|capture={onInput}
+  on:focus={onFocus}
   on:blur={onBlur}
 />

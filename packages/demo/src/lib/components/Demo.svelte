@@ -1,9 +1,13 @@
 <script lang="ts">
-  import { currCell, currCellName } from '$lib/store'
+  import { currCellName, currCol, currRow } from '$lib/store'
 
+  import CellInput from './CellInput.svelte'
   import Sheet from './Sheet.svelte'
 
-  $: cell = $currCell
+  let sheetRef: HTMLElement
+  const onCurrCellInputDone = () => {
+    sheetRef?.focus()
+  }
 </script>
 
 <div class="grid grid-rows-[auto,auto,1fr] min-h-100vh">
@@ -13,10 +17,15 @@
 
   <nav class="flex">
     <label for="cell" class="min-w-6ch">{$currCellName}</label>
-    <input type="text" name="cell" class="w-full" bind:value={$cell} />
+    <CellInput
+      col={$currCol}
+      row={$currRow}
+      resumeEdit
+      on:done={onCurrCellInputDone}
+    />
   </nav>
 
   <main>
-    <Sheet />
+    <Sheet bind:ref={sheetRef} />
   </main>
 </div>

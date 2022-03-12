@@ -11,11 +11,11 @@
   import Cell from './Cell.svelte'
   import CellInput from './CellInput.svelte'
 
+  export let ref: HTMLElement = null
+
   $: cols = $colsLen
   $: rows = $rowsLen
   $: [currCol, currRow] = $currCellCoords
-
-  let self: HTMLElement
 
   let isEditing = false
   let resumeEdit = false
@@ -23,10 +23,10 @@
     resumeEdit = true
     isEditing = true
   }
-  const onEditend = () => {
+  const onEditDone = () => {
     isEditing = false
     resumeEdit = false
-    self?.focus()
+    ref?.focus()
   }
 
   const keyMoves: Record<string, [number, number]> = {
@@ -72,46 +72,56 @@
     }
 
     // Handle simple keys
-    if (key.length === 1) {
+    if (key.length === 1 && !e.metaKey && !e.ctrlKey) {
       isEditing = true
     }
   }
 </script>
 
-<table
+<section
   on:keydown={onKeydown}
-  bind:this={self}
+  bind:this={ref}
   tabindex="-1"
-  class="outline-none"
+  class="outline-none min-h-full"
 >
-  <tr>
-    <th />
-    {#each Array(cols) as _, col}
-      <th scope="col">{nameCol(col)}</th>
-    {/each}
-  </tr>
-
-  {#each Array(rows) as _, row}
+  <table>
     <tr>
-      <th scope="row">{nameRow(row)}</th>
+      <th />
       {#each Array(cols) as _, col}
-        {@const isSelected = col === currCol && row === currRow}
-        <td>
-          <Cell {col} {row} {isSelected} on:editstart={onEditstart} />
-
-          {#if isSelected}
-            <div
-              class="absolute inset-0 border-width-2 border-current pointer-events-none"
-            />
-            {#if isEditing}
-              <CellInput {col} {row} {resumeEdit} on:editend={onEditend} />
-            {/if}
-          {/if}
-        </td>
+        <th scope="col">{nameCol(col)}</th>
       {/each}
     </tr>
-  {/each}
-</table>
+
+    {#each Array(rows) as _, row}
+      <tr>
+        <th scope="row">{nameRow(row)}</th>
+        {#each Array(cols) as _, col}
+          {@const isSelected = col === currCol && row === currRow}
+          <td>
+            <Cell {col} {row} {isSelected} on:editstart={onEditstart} />
+
+            {#if isSelected}
+              <div
+                class="absolute inset-0 border-width-2 border-current pointer-events-none"
+              />
+              {#if isEditing}
+                <div class="absolute inset-0">
+                  <CellInput
+                    {col}
+                    {row}
+                    {resumeEdit}
+                    autofocus
+                    on:done={onEditDone}
+                  />
+                </div>
+              {/if}
+            {/if}
+          </td>
+        {/each}
+      </tr>
+    {/each}
+  </table>
+</section>
 
 <style>
   td {
