@@ -1,12 +1,6 @@
 import type { CstNode } from 'chevrotain'
-import { combineLatest, mergeMap, Observable, of } from 'rxjs'
-import {
-  derived,
-  derivedFamily,
-  switchCombineLatest,
-  writable,
-  writableFamily,
-} from 'svorn'
+import { combineLatest, Observable, of, switchMap } from 'rxjs'
+import { derived, derivedFamily, writable, writableFamily } from 'svorn'
 
 import {
   type CellCoord,
@@ -69,19 +63,19 @@ export const resolvedCells = derivedFamily((cell: string) => ({
   source: parsedCells
     .get(cell)
     .pipe(
-      mergeMap((res) =>
-        combineLatest([
-          of(res.cst),
-          of(mapCellDeps(res.cells)).pipe(switchCombineLatest()),
-        ]),
+      switchMap((res) =>
+        combineLatest([of(res.cst), combineCellDeps(res.cells)]),
       ),
     ),
   then: ([cst, values]: [CstNode, CellValues]) => resolve(cst, values),
   catch: () => CircularDepErr,
 }))
 
-const mapCellDeps = (deps: Set<string>) => {
+const combineCellDeps = (
+  deps: Set<string>,
+): Observable<Record<string, CellValue>> => {
+  if (!deps.size) return of({})
   const obs: Record<string, Observable<CellValue>> = {}
   for (const dep of deps) obs[dep] = resolvedCells.get(dep)
-  return obs
+  return combineLatest(obs)
 }
