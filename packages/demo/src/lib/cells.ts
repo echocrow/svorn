@@ -4,6 +4,20 @@ const azBase = zCharCode - aCharCode + 1
 
 export type CellCoord = readonly [col: number, row: number]
 
+export class CellError extends Error {
+  label: string
+  constructor(label: string, message: string) {
+    super(message)
+    this.label = label
+  }
+  toString(): string {
+    return `#${this.label}!`
+  }
+}
+
+export type CellValue = string | number | boolean | CellError
+export type CellValues = Record<string, CellValue>
+
 const nameColRec = (col: number, acc = ''): string => {
   if (col < 0) return acc
   const c = col % azBase
@@ -38,10 +52,10 @@ export const parseCellName = (name: string): CellCoord => {
     if (!rowName) {
       if (c >= 'A' && c <= 'Z') colName += c
       else if (c >= '1' && c <= '9') rowName += c
-      else throw new Error('todo: invalid token')
+      else throw new Error('Invalid token')
     } else {
       if (c >= '0' && c <= '9') rowName += c
-      else throw new Error('todo: invalid token')
+      else throw new Error('Invalid token')
     }
   }
   return [parseRow(rowName), parseCol(colName)]
