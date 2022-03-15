@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { nameCol, nameRow } from '$lib/cells'
+  import { nameCell, nameCol, nameRow } from '$lib/cells'
   import {
     cells,
     colsLen,
@@ -30,8 +30,8 @@
     resumeEdit = false
     ref?.focus()
   }
-  const onEditSubmit = (e: CustomEvent<string>) => {
-    cells.next(currName, e.detail)
+  const onEditSubmit = (col: number, row: number, value: string) => {
+    cells.next(nameCell(col, row), value)
   }
 
   const keyMoves: Record<string, [number, number]> = {
@@ -116,7 +116,7 @@
                     autofocus
                     aria-label="Cell input"
                     on:done={onEditDone}
-                    on:submit={onEditSubmit}
+                    on:submit={(e) => onEditSubmit(col, row, e.detail)}
                   />
                 </div>
               {/if}
