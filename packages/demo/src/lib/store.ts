@@ -1,6 +1,23 @@
-import { derived, derivedFamily, writable, writableFamily } from 'svorn'
+import type { CstNode } from 'chevrotain'
+import { combineLatest, mergeMap, Observable, of } from 'rxjs'
+import {
+  derived,
+  derivedFamily,
+  switchCombineLatest,
+  writable,
+  writableFamily,
+} from 'svorn'
 
-import { type CellCoord, nameCell, parseCellName } from './cells'
+import {
+  type CellCoord,
+  type CellValue,
+  type CellValues,
+  CellError,
+  nameCell,
+  parseCellName,
+} from './cells'
+import parse from './formula/parse'
+import resolve from './formula/resolve'
 import { clamp } from './utils'
 
 export const cells = writableFamily('')
@@ -41,7 +58,30 @@ export const currRow = derived(currCellCoords, {
 
 export const currCell = derived(currCellName, (cellName) => cells.get(cellName))
 
-export const outputCells = derivedFamily((cell: string) => ({
+export const parsedCells = derivedFamily((cell: string) => ({
   source: cells.get(cell),
-  then: (txt) => `[${txt}]`,
+  then: (txt) => parse(txt),
 }))
+
+const CircularDepErr = new CellError('LOOP', 'Circular dependency')
+
+export const resolvedCells = derivedFamily((cell: string) => ({
+  source: parsedCells
+    .get(cell)
+    .pipe(
+      mergeMap((res) =>
+        combineLatest([
+          of(res.cst),
+          of(mapCellDeps(res.cells)).pipe(switchCombineLatest()),
+        ]),
+      ),
+    ),
+  then: ([cst, values]: [CstNode, CellValues]) => resolve(cst, values),
+  catch: () => CircularDepErr,
+}))
+
+const mapCellDeps = (deps: Set<string>) => {
+  const obs: Record<string, Observable<CellValue>> = {}
+  for (const dep of deps) obs[dep] = resolvedCells.get(dep)
+  return obs
+}

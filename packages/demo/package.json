@@ -26,7 +26,6 @@
     "eslint-plugin-svelte3": "^3.4.1",
     "prettier": "^2.5.1",
     "prettier-plugin-svelte": "^2.6.0",
-    "rxjs": "^7.5.5",
     "svelte": "^3.46.4",
     "svelte-check": "^2.4.5",
     "svelte-preprocess": "^4.10.4",
@@ -39,6 +38,7 @@
   "type": "module",
   "dependencies": {
     "chevrotain": "^10.1.2",
+    "rxjs": "^7.5.5",
     "svorn": "workspace:^0.0.1"
   }
 }

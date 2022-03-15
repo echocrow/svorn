@@ -2,7 +2,7 @@
   import { createEventDispatcher } from 'svelte'
 
   import { nameCell } from '$lib/cells'
-  import { outputCells, setCurrCellCoords } from '$lib/store'
+  import { resolvedCells, setCurrCellCoords } from '$lib/store'
 
   const DOUBLE_CLICK_THRESHOLD = 300
 
@@ -13,7 +13,7 @@
   const dispatch = createEventDispatcher()
 
   const name = nameCell(col, row)
-  const val = outputCells.get(name)
+  const val = resolvedCells.get(name)
 
   let btn: HTMLButtonElement
 

@@ -53,6 +53,7 @@ importers:
       vite-tsconfig-paths: ^3.4.1
     dependencies:
       chevrotain: 10.1.2
+      rxjs: 7.5.5
       svorn: link:../svorn
     devDependencies:
       '@playwright/test': 1.19.2
@@ -65,7 +66,6 @@ importers:
       eslint-plugin-svelte3: 3.4.1_eslint@8.11.0+svelte@3.46.4
       prettier: 2.5.1
       prettier-plugin-svelte: 2.6.0_prettier@2.5.1+svelte@3.46.4
-      rxjs: 7.5.5
       svelte: 3.46.4
       svelte-check: 2.4.5_svelte@3.46.4
       svelte-preprocess: 4.10.4_svelte@3.46.4+typescript@4.6.2
@@ -6800,6 +6800,7 @@ packages:
     resolution: {integrity: sha512-sy+H0pQofO95VDmFLzyaw9xNJU4KTRSwQIGM6+iG3SypAtCiLDzpeG8sJrNCWn2Up9km+KhkvTdbkrdy+yzZdw==}
     dependencies:
       tslib: 2.3.1
+    dev: false
 
   /sade/1.8.1:
     resolution: {integrity: sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==}
