@@ -1,5 +1,6 @@
 {
   "name": "svorn-monorepo",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://EchoCrow@github.com/echocrow/svorn.git"
