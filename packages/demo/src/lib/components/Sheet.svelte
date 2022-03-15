@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { nameCell, nameCol, nameRow } from '$lib/cells'
+  import { nameCol, nameRow } from '$lib/cells'
   import {
     cells,
     colsLen,
     currCellCoords,
+    currCellName,
     moveCurrCellCoords,
     rowsLen,
   } from '$lib/store'
@@ -11,11 +12,12 @@
   import Cell from './Cell.svelte'
   import CellInput from './CellInput.svelte'
 
-  export let ref: HTMLElement = null
+  export let ref: HTMLElement | null = null
 
   $: cols = $colsLen
   $: rows = $rowsLen
   $: [currCol, currRow] = $currCellCoords
+  $: currName = $currCellName
 
   let isEditing = false
   let resumeEdit = false
@@ -27,6 +29,9 @@
     isEditing = false
     resumeEdit = false
     ref?.focus()
+  }
+  const onEditSubmit = (e: CustomEvent<string>) => {
+    cells.next(currName, e.detail)
   }
 
   const keyMoves: Record<string, [number, number]> = {
@@ -51,7 +56,7 @@
     if (key === 'Delete' || key === 'Backspace') {
       if (isEditing) return
       e.preventDefault()
-      cells.reset(nameCell(currCol, currRow))
+      cells.reset(currName)
       return
     }
 
@@ -107,11 +112,11 @@
               {#if isEditing}
                 <div class="absolute inset-0">
                   <CellInput
-                    {col}
-                    {row}
-                    {resumeEdit}
+                    defaultText={resumeEdit ? cells.getValue(currName) : ''}
                     autofocus
+                    aria-label="Cell input"
                     on:done={onEditDone}
+                    on:submit={onEditSubmit}
                   />
                 </div>
               {/if}
