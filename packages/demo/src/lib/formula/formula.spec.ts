@@ -98,11 +98,7 @@ describe('parse & resolve', () => {
       ['=8/16', 0.5],
       ['=2**9', 512],
     ])('resolves basic math %s => %j', (input, want) =>
-      expectParseResolve(input, {
-        A1: '',
-        B5: 11,
-        ABC78: 'a',
-      }).toBe(want),
+      expectParseResolve(input).toBe(want),
     )
     it.each([
       ['=1+2*3', 7],
@@ -114,11 +110,7 @@ describe('parse & resolve', () => {
       ['=2+4**3/8', 10],
       ['=2**10-24', 1000],
     ])('resolves math operators in correct order %s => %j', (input, want) =>
-      expectParseResolve(input, {
-        A1: '',
-        B5: 11,
-        ABC78: 'a',
-      }).toBe(want),
+      expectParseResolve(input).toBe(want),
     )
     it.each([
       ['=(1+2)*3', 9],
@@ -128,11 +120,7 @@ describe('parse & resolve', () => {
       ['=(2+4)**(4/2)', 36],
       ['=2**(2*(1+2)+1)', 128],
     ])('resolves brackets first %s => %j', (input, want) =>
-      expectParseResolve(input, {
-        A1: '',
-        B5: 11,
-        ABC78: 'a',
-      }).toBe(want),
+      expectParseResolve(input).toBe(want),
     )
 
     it.each([
@@ -141,11 +129,7 @@ describe('parse & resolve', () => {
       ['=2*"soon"', 'soonsoon'],
       ['="n"*0', ''],
     ])('resolves basic text manipulation %s => %j', (input, want) =>
-      expectParseResolve(input, {
-        A1: '',
-        B5: 11,
-        ABC78: 'a',
-      }).toBe(want),
+      expectParseResolve(input).toBe(want),
     )
 
     it.each([
