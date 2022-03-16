@@ -87,7 +87,7 @@ const EnterPlainText = createToken({
 })
 const PlainText = createToken({
   name: 'PlainText',
-  pattern: /.+/,
+  pattern: /(?:.|\n)+/,
 })
 
 const MagicText = createToken({

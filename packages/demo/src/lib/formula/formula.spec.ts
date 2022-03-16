@@ -40,6 +40,7 @@ describe('parse & resolve', () => {
       ["'123", '123'],
       ["'TRUE", 'TRUE'],
       ["'NULL", 'NULL'],
+      ["'multi\nline", 'multi\nline'],
     ])('resolves %j => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
@@ -58,6 +59,7 @@ describe('parse & resolve', () => {
       ['-3e2', -300],
       ['(8)', -8],
       ['(-8)', 8],
+      ['a\nb\nc', 'a\nb\nc'],
     ])('resolves %j => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
@@ -70,6 +72,7 @@ describe('parse & resolve', () => {
       ['=""', ''],
       ['="foo"', 'foo'],
       ['="fizz buzz"', 'fizz buzz'],
+      ['="multi\nline"', 'multi\nline'],
       ['=TRUE', true],
       ['=FALSE', false],
     ])('resolves %j => %j', (input, want) =>
