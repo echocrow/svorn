@@ -28,8 +28,8 @@ import {
 
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor()
 
-const ValErr = new CellError('VALUE', 'Value not supported')
-const RuntimeErr = new CellError('ERROR', 'Unexpected runtime error')
+export const ValErr = new CellError('VALUE', 'Value not supported')
+export const RuntimeErr = new CellError('ERROR', 'Unexpected runtime error')
 
 const resolveStringLiteral = (str: string): string => {
   const rawBody = str.slice(1, -1)
