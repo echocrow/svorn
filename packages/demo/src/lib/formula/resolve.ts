@@ -30,7 +30,9 @@ export const RuntimeErr = new CellError('ERROR', 'Unexpected runtime error')
 type CalcFn = (a: CellValue, b: CellValue) => CellValue
 
 const resolveForCalc = (val: CellValue): number | CellValue =>
-  typeof val === 'string'
+  typeof val === 'number'
+    ? val
+    : typeof val === 'string'
     ? val || 0
     : typeof val === 'boolean'
     ? Number(val)
