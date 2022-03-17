@@ -221,5 +221,9 @@ describe('parse & resolve', () => {
     ])('returns value error in invalid calc %s', (input) =>
       expectParseResolve(input).toBe(ValErr),
     )
+
+    it.todo("strings with escaped '\"'")
+
+    it.todo('formulas')
   })
 })
