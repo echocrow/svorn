@@ -7,6 +7,8 @@ import {
   Lexer,
 } from 'chevrotain'
 
+import { IS_DEV_ENV } from '$lib/utils'
+
 const EnterFormula = createToken({
   name: 'EnterFormula',
   pattern: '=',
@@ -187,6 +189,7 @@ class Parser extends CstParser {
   constructor() {
     super(tokenModes, {
       recoveryEnabled: true,
+      skipValidations: !IS_DEV_ENV,
     })
     this.performSelfAnalysis()
   }

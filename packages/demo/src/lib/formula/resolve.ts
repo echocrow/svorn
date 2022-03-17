@@ -6,6 +6,7 @@ import {
 } from 'chevrotain'
 
 import { type CellValue, type CellValues, CellError } from '$lib/cells'
+import { IS_DEV_ENV } from '$lib/utils'
 
 import type {
   AtomicExpressionCstChildren,
@@ -110,7 +111,7 @@ class Interpreter extends BaseCstVisitor {
 
   constructor() {
     super()
-    this.validateVisitor()
+    if (IS_DEV_ENV) this.validateVisitor()
   }
 
   interpret(cst: CstNode, cellValues: CellValues): CellValue {
