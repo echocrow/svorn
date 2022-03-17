@@ -10,6 +10,7 @@ export type ParseInputCstChildren = {
   formula?: FormulaCstNode[];
   plain?: PlainCstNode[];
   magicText?: MagicTextCstNode[];
+  text?: TextCstNode[];
 };
 
 export interface PlainCstNode extends CstNode {
@@ -37,7 +38,21 @@ export interface MagicTextCstNode extends CstNode {
 }
 
 export type MagicTextCstChildren = {
-  MagicText?: IToken[];
+  atomicNumber?: AtomicNumberCstNode[];
+  financeNumber?: FinanceNumberCstNode[];
+  Boolean?: IToken[];
+  EOF: IToken[];
+};
+
+export interface FinanceNumberCstNode extends CstNode {
+  name: "financeNumber";
+  children: FinanceNumberCstChildren;
+}
+
+export type FinanceNumberCstChildren = {
+  LParen: IToken[];
+  number: IToken[];
+  RParen: IToken[];
 };
 
 export interface FormulaCstNode extends CstNode {
@@ -114,6 +129,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   plain(children: PlainCstChildren, param?: IN): OUT;
   text(children: TextCstChildren, param?: IN): OUT;
   magicText(children: MagicTextCstChildren, param?: IN): OUT;
+  financeNumber(children: FinanceNumberCstChildren, param?: IN): OUT;
   formula(children: FormulaCstChildren, param?: IN): OUT;
   calcExpression(children: CalcExpressionCstChildren, param?: IN): OUT;
   atomicExpression(children: AtomicExpressionCstChildren, param?: IN): OUT;

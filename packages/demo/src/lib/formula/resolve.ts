@@ -6,12 +6,12 @@ import {
 } from 'chevrotain'
 
 import { type CellValue, type CellValues, CellError } from '$lib/cells'
-import { exactMatch } from '$lib/utils'
 
 import type {
   AtomicExpressionCstChildren,
   AtomicNumberCstChildren,
   CalcExpressionCstChildren,
+  FinanceNumberCstChildren,
   FormulaCstChildren,
   FunctionExpressionCstChildren,
   MagicTextCstChildren,
@@ -20,17 +20,7 @@ import type {
   PlainCstChildren,
   TextCstChildren,
 } from './cst.gen'
-import {
-  Div,
-  False,
-  Minus,
-  Multi,
-  NumberLiteralRegEx,
-  parser,
-  Plus,
-  Pow,
-  True,
-} from './parse'
+import { Div, Minus, Multi, parser, Plus, Pow, True } from './parse'
 
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor()
 
@@ -95,7 +85,9 @@ class Interpreter extends BaseCstVisitor {
   }
 
   protected parseInput(ctx: ParseInputCstChildren): CellValue {
-    return this.visit(ctx.formula ?? ctx.plain ?? ctx.magicText ?? [])
+    return this.visit(
+      ctx.formula ?? ctx.plain ?? ctx.magicText ?? ctx.text ?? [],
+    )
   }
 
   protected plain(ctx: PlainCstChildren): CellValue {
@@ -103,26 +95,14 @@ class Interpreter extends BaseCstVisitor {
   }
 
   protected text(ctx: TextCstChildren): CellValue {
-    return ctx.PlainText?.[0]?.image ?? ''
+    return (ctx.PlainText ?? []).map((t) => t.image).join('')
   }
 
   protected magicText(ctx: MagicTextCstChildren): CellValue {
-    if (!ctx.MagicText) return ''
-    const txt = ctx.MagicText?.[0]?.image ?? ''
-    // Magic booleans.
-    if (txt === True.name) return true
-    if (txt === False.name) return false
-    // Magic numbers.
-    if (exactMatch(txt, NumberLiteralRegEx)) return parseFloat(txt)
-    if (
-      txt.startsWith('(') &&
-      txt.endsWith(')') &&
-      exactMatch(txt.slice(1, -1), NumberLiteralRegEx)
-    ) {
-      return -parseFloat(txt.slice(1, -1))
-    }
-    // Plain text.
-    return txt
+    if (ctx.atomicNumber) return this.visit(ctx.atomicNumber)
+    if (ctx.financeNumber) return this.visit(ctx.financeNumber)
+    if (ctx.Boolean) return this.resolveBoolean(ctx.Boolean[0] as IToken)
+    return RuntimeErr
   }
 
   protected formula(ctx: FormulaCstChildren): CellValue {
@@ -189,6 +169,10 @@ class Interpreter extends BaseCstVisitor {
       ? (ctx.ops.filter((op) => tokenMatcher(op, Minus)).length % 2) * -2 + 1
       : 1
     return num * sign
+  }
+
+  protected financeNumber(ctx: FinanceNumberCstChildren): CellValue {
+    return -parseFloat(ctx.number[0]?.image ?? '')
   }
 
   protected parenExpression(ctx: ParenExpressionCstChildren): CellValue {

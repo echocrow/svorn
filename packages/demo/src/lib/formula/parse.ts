@@ -3,10 +3,9 @@ import {
   type TokenType,
   createToken,
   CstParser,
+  EOF,
   Lexer,
 } from 'chevrotain'
-
-export const NumberLiteralRegEx = /-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/
 
 const EnterFormula = createToken({
   name: 'EnterFormula',
@@ -63,7 +62,7 @@ const StringLiteral = createToken({
 })
 const NumberLiteral = createToken({
   name: 'NumberLiteral',
-  pattern: NumberLiteralRegEx,
+  pattern: /(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/,
 })
 const CellName = createToken({
   name: 'CellName',
@@ -91,6 +90,11 @@ const WhiteSpace = createToken({
   group: Lexer.SKIPPED,
 })
 
+const Anything = createToken({
+  name: 'PlainText',
+  pattern: Lexer.NA,
+})
+
 const EnterPlainText = createToken({
   name: 'EnterPlainText',
   pattern: "'",
@@ -99,11 +103,44 @@ const EnterPlainText = createToken({
 const PlainText = createToken({
   name: 'PlainText',
   pattern: /(?:.|\n)+/,
+  categories: Anything,
+  line_breaks: true,
 })
 
-const MagicText = createToken({
-  name: 'MagicText',
-  pattern: PlainText.PATTERN,
+export const PlainTrue = createToken({
+  name: 'TRUE',
+  pattern: True.PATTERN,
+  categories: [True, Anything],
+})
+export const PlainFalse = createToken({
+  name: 'FALSE',
+  pattern: False.PATTERN,
+  categories: [False, Anything],
+})
+export const PlainPlus = createToken({
+  name: 'Plus',
+  pattern: Plus.PATTERN,
+  categories: [Plus, Anything],
+})
+export const PlainMinus = createToken({
+  name: 'Minus',
+  pattern: Minus.PATTERN,
+  categories: [Minus, Anything],
+})
+const PlainNumberLiteral = createToken({
+  name: 'NumberLiteral',
+  pattern: NumberLiteral.PATTERN,
+  categories: [NumberLiteral, Anything],
+})
+const PlainLParen = createToken({
+  name: 'PlainLParen',
+  pattern: LParen.PATTERN,
+  categories: [LParen, Anything],
+})
+const PlainRParen = createToken({
+  name: 'PlainRParen',
+  pattern: RParen.PATTERN,
+  categories: [RParen, Anything],
 })
 
 const tokenModes: IMultiModeLexerDefinition = {
@@ -115,11 +152,8 @@ const tokenModes: IMultiModeLexerDefinition = {
       Div,
       Plus,
       Minus,
-      AdditionOperator,
-      CalcOperator,
       True,
       False,
-      Boolean,
       CellName,
       FormulaName,
       NumberLiteral,
@@ -130,7 +164,18 @@ const tokenModes: IMultiModeLexerDefinition = {
       Colon,
     ],
     plainText: [PlainText],
-    input: [EnterFormula, EnterPlainText, MagicText],
+    input: [
+      EnterFormula,
+      EnterPlainText,
+      PlainTrue,
+      PlainFalse,
+      PlainPlus,
+      PlainMinus,
+      PlainNumberLiteral,
+      PlainLParen,
+      PlainRParen,
+      PlainText,
+    ],
   },
   defaultMode: 'input',
 }
@@ -158,7 +203,11 @@ class Parser extends CstParser {
     this.OR([
       { ALT: () => this.SUBRULE(this.formula) },
       { ALT: () => this.SUBRULE(this.plain) },
-      { ALT: () => this.SUBRULE(this.magicText) },
+      {
+        GATE: this.BACKTRACK(this.magicText),
+        ALT: () => this.SUBRULE(this.magicText),
+      },
+      { ALT: () => this.SUBRULE(this.text) },
     ])
   })
 
@@ -168,11 +217,22 @@ class Parser extends CstParser {
   })
 
   private text = this.RULE('text', () => {
-    this.OPTION(() => this.CONSUME(PlainText))
+    this.MANY(() => this.CONSUME(Anything))
   })
 
   private magicText = this.RULE('magicText', () => {
-    this.OPTION(() => this.CONSUME(MagicText))
+    this.OR([
+      { ALT: () => this.SUBRULE(this.atomicNumber) },
+      { ALT: () => this.SUBRULE(this.financeNumber) },
+      { ALT: () => this.CONSUME(Boolean) },
+    ])
+    this.CONSUME(EOF)
+  })
+
+  private financeNumber = this.RULE('financeNumber', () => {
+    this.CONSUME(LParen)
+    this.CONSUME(PlainNumberLiteral, { LABEL: 'number' })
+    this.CONSUME(RParen)
   })
 
   private formula = this.RULE('formula', () => {
