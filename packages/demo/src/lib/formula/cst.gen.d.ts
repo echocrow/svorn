@@ -38,10 +38,20 @@ export interface MagicTextCstNode extends CstNode {
 }
 
 export type MagicTextCstChildren = {
-  atomicNumber?: AtomicNumberCstNode[];
+  magicNumber?: MagicNumberCstNode[];
   financeNumber?: FinanceNumberCstNode[];
   Boolean?: IToken[];
   EOF: IToken[];
+};
+
+export interface MagicNumberCstNode extends CstNode {
+  name: "magicNumber";
+  children: MagicNumberCstChildren;
+}
+
+export type MagicNumberCstChildren = {
+  ops?: IToken[];
+  number: IToken[];
 };
 
 export interface FinanceNumberCstNode extends CstNode {
@@ -82,22 +92,13 @@ export interface AtomicExpressionCstNode extends CstNode {
 }
 
 export type AtomicExpressionCstChildren = {
+  ops?: IToken[];
   parenExpression?: ParenExpressionCstNode[];
   functionExpression?: FunctionExpressionCstNode[];
-  atomicNumber?: AtomicNumberCstNode[];
+  NumberLiteral?: IToken[];
   CellName?: IToken[];
   StringLiteral?: IToken[];
   Boolean?: IToken[];
-};
-
-export interface AtomicNumberCstNode extends CstNode {
-  name: "atomicNumber";
-  children: AtomicNumberCstChildren;
-}
-
-export type AtomicNumberCstChildren = {
-  ops?: IToken[];
-  number: IToken[];
 };
 
 export interface ParenExpressionCstNode extends CstNode {
@@ -129,11 +130,11 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   plain(children: PlainCstChildren, param?: IN): OUT;
   text(children: TextCstChildren, param?: IN): OUT;
   magicText(children: MagicTextCstChildren, param?: IN): OUT;
+  magicNumber(children: MagicNumberCstChildren, param?: IN): OUT;
   financeNumber(children: FinanceNumberCstChildren, param?: IN): OUT;
   formula(children: FormulaCstChildren, param?: IN): OUT;
   calcExpression(children: CalcExpressionCstChildren, param?: IN): OUT;
   atomicExpression(children: AtomicExpressionCstChildren, param?: IN): OUT;
-  atomicNumber(children: AtomicNumberCstChildren, param?: IN): OUT;
   parenExpression(children: ParenExpressionCstChildren, param?: IN): OUT;
   functionExpression(children: FunctionExpressionCstChildren, param?: IN): OUT;
 }

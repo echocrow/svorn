@@ -222,13 +222,16 @@ class Parser extends CstParser {
 
   private magicText = this.RULE('magicText', () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this.atomicNumber) },
+      { ALT: () => this.SUBRULE(this.magicNumber) },
       { ALT: () => this.SUBRULE(this.financeNumber) },
       { ALT: () => this.CONSUME(Boolean) },
     ])
     this.CONSUME(EOF)
   })
-
+  private magicNumber = this.RULE('magicNumber', () => {
+    this.MANY(() => this.CONSUME(AdditionOperator, { LABEL: 'ops' }))
+    this.CONSUME(NumberLiteral, { LABEL: 'number' })
+  })
   private financeNumber = this.RULE('financeNumber', () => {
     this.CONSUME(LParen)
     this.CONSUME(PlainNumberLiteral, { LABEL: 'number' })
@@ -249,19 +252,15 @@ class Parser extends CstParser {
   })
 
   private atomicExpression = this.RULE('atomicExpression', () => {
+    this.MANY(() => this.CONSUME(AdditionOperator, { LABEL: 'ops' }))
     this.OR([
       { ALT: () => this.SUBRULE(this.parenExpression) },
       { ALT: () => this.SUBRULE(this.functionExpression) },
-      { ALT: () => this.SUBRULE(this.atomicNumber) },
       { ALT: () => this.CONSUME(CellName) },
+      { ALT: () => this.CONSUME(NumberLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
       { ALT: () => this.CONSUME(Boolean) },
     ])
-  })
-
-  private atomicNumber = this.RULE('atomicNumber', () => {
-    this.MANY(() => this.CONSUME(AdditionOperator, { LABEL: 'ops' }))
-    this.CONSUME(NumberLiteral, { LABEL: 'number' })
   })
 
   private parenExpression = this.RULE('parenExpression', () => {

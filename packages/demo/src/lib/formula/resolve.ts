@@ -9,11 +9,11 @@ import { type CellValue, type CellValues, CellError } from '$lib/cells'
 
 import type {
   AtomicExpressionCstChildren,
-  AtomicNumberCstChildren,
   CalcExpressionCstChildren,
   FinanceNumberCstChildren,
   FormulaCstChildren,
   FunctionExpressionCstChildren,
+  MagicNumberCstChildren,
   MagicTextCstChildren,
   ParenExpressionCstChildren,
   ParseInputCstChildren,
@@ -27,36 +27,68 @@ const BaseCstVisitor = parser.getBaseCstVisitorConstructor()
 export const ValErr = new CellError('VALUE', 'Value not supported')
 export const RuntimeErr = new CellError('ERROR', 'Unexpected runtime error')
 
-const resolveStringLiteral = (str: string): string => {
-  const rawBody = str.slice(1, -1)
-  // @todo Remove escaped quotes
-  return rawBody
-}
-
 type CalcFn = (a: CellValue, b: CellValue) => CellValue
 
+const resolveForCalc = (val: CellValue): number | CellValue =>
+  typeof val === 'string'
+    ? val || 0
+    : typeof val === 'boolean'
+    ? Number(val)
+    : val
+
 const calcPow: CalcFn = (a, b) => {
+  a = resolveForCalc(a)
+  b = resolveForCalc(b)
   if (typeof a !== 'number' || typeof b !== 'number') return ValErr
   return a ** b
 }
 const calcMultiply: CalcFn = (a, b) => {
-  if (typeof a === 'string' && typeof b === 'number') return a.repeat(b)
   if (typeof a === 'number' && typeof b === 'string') return calcMultiply(b, a)
+  a = resolveForCalc(a)
+  b = resolveForCalc(b)
   if (typeof a !== 'number' || typeof b !== 'number') return ValErr
   return a * b
 }
 const calcDivide: CalcFn = (a, b) => {
+  a = resolveForCalc(a)
+  b = resolveForCalc(b)
   if (typeof a !== 'number' || typeof b !== 'number') return ValErr
   return a / b
 }
 const calcAdd: CalcFn = (a, b) => {
   if (typeof a === 'string' && typeof b === 'string') return a + b
+  a = resolveForCalc(a)
+  b = resolveForCalc(b)
   if (typeof a !== 'number' || typeof b !== 'number') return ValErr
   return a + b
 }
 const calcSubtract: CalcFn = (a, b) => {
+  a = resolveForCalc(a)
+  b = resolveForCalc(b)
   if (typeof a !== 'number' || typeof b !== 'number') return ValErr
   return a - b
+}
+
+const resolveNumberLiteral = (token: IToken | undefined): number =>
+  parseFloat(token?.image ?? '')
+
+const resolveBoolean = (token: IToken | undefined): boolean =>
+  token ? tokenMatcher(token, True) : false
+
+// Resolve +/- ops to a sign multiplier based on number of Minus operators.
+const resolveAdditionOps = (ops: IToken[] | undefined): number | undefined =>
+  ops
+    ? (ops.filter((op) => tokenMatcher(op, Minus)).length % 2) * -2 + 1
+    : undefined
+
+const resolveAdditionValue = (
+  ops: IToken[] | undefined,
+  rhs: CellValue,
+): CellValue => {
+  const sign = resolveAdditionOps(ops)
+  return sign !== undefined && !(rhs instanceof Error)
+    ? calcMultiply(rhs, sign)
+    : rhs
 }
 
 const calcPhases: readonly [TokenType, CalcFn][][] = [
@@ -99,10 +131,16 @@ class Interpreter extends BaseCstVisitor {
   }
 
   protected magicText(ctx: MagicTextCstChildren): CellValue {
-    if (ctx.atomicNumber) return this.visit(ctx.atomicNumber)
+    if (ctx.magicNumber) return this.visit(ctx.magicNumber)
     if (ctx.financeNumber) return this.visit(ctx.financeNumber)
-    if (ctx.Boolean) return this.resolveBoolean(ctx.Boolean[0] as IToken)
+    if (ctx.Boolean) return resolveBoolean(ctx.Boolean[0])
     return RuntimeErr
+  }
+  protected magicNumber(ctx: MagicNumberCstChildren): CellValue {
+    return resolveAdditionValue(ctx.ops, resolveNumberLiteral(ctx.number[0]))
+  }
+  protected financeNumber(ctx: FinanceNumberCstChildren): CellValue {
+    return -resolveNumberLiteral(ctx.number[0])
   }
 
   protected formula(ctx: FormulaCstChildren): CellValue {
@@ -144,35 +182,29 @@ class Interpreter extends BaseCstVisitor {
   }
 
   protected atomicExpression(ctx: AtomicExpressionCstChildren): CellValue {
+    return resolveAdditionValue(ctx.ops, this.resolveAtomicExpression(ctx))
+  }
+  private resolveAtomicExpression(ctx: AtomicExpressionCstChildren): CellValue {
     if (ctx.parenExpression) return this.visit(ctx.parenExpression)
 
     if (ctx.functionExpression) return this.visit(ctx.functionExpression)
-
-    if (ctx.atomicNumber) return this.visit(ctx.atomicNumber)
 
     if (ctx.CellName) {
       const cellName = ctx.CellName?.[0]?.image ?? ''
       return this.#cellValues[cellName] ?? ''
     }
 
-    if (ctx.StringLiteral)
-      return resolveStringLiteral(ctx.StringLiteral?.[0]?.image ?? '')
-    if (ctx.Boolean) return this.resolveBoolean(ctx.Boolean[0] as IToken)
+    if (ctx.NumberLiteral) return resolveNumberLiteral(ctx.NumberLiteral[0])
+
+    if (ctx.StringLiteral) {
+      const rawBody = (ctx.StringLiteral?.[0]?.image ?? '').slice(1, -1)
+      // @todo Remove escaped quotes
+      return rawBody
+    }
+
+    if (ctx.Boolean) return resolveBoolean(ctx.Boolean[0])
 
     return RuntimeErr
-  }
-
-  protected atomicNumber(ctx: AtomicNumberCstChildren): CellValue {
-    const num = parseFloat(ctx.number[0]?.image ?? '')
-    // Sign multiplier based on number of Minus operators.
-    const sign = ctx.ops
-      ? (ctx.ops.filter((op) => tokenMatcher(op, Minus)).length % 2) * -2 + 1
-      : 1
-    return num * sign
-  }
-
-  protected financeNumber(ctx: FinanceNumberCstChildren): CellValue {
-    return -parseFloat(ctx.number[0]?.image ?? '')
   }
 
   protected parenExpression(ctx: ParenExpressionCstChildren): CellValue {
@@ -182,10 +214,6 @@ class Interpreter extends BaseCstVisitor {
   protected functionExpression(ctx: FunctionExpressionCstChildren): CellValue {
     // @todo Implement custom functions.
     return RuntimeErr
-  }
-
-  private resolveBoolean(token: IToken): boolean {
-    return tokenMatcher(token, True)
   }
 }
 

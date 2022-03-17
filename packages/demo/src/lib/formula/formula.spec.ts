@@ -148,16 +148,45 @@ describe('parse & resolve', () => {
       ['=-+-+-8', -8],
       ['=11*-2', -22],
       ['=11*--3', 33],
+      ['=--++-(2*(2--4))', -12],
     ])('supports consecutive +/- operators %s => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
 
     it.each([
+      ['=""+""', ''],
       ['="a"+"B"+"c"', 'aBc'],
-      ['="Zz"*3', 'ZzZzZz'],
-      ['=2*"soon"', 'soonsoon'],
-      ['="n"*0', ''],
     ])('resolves basic text manipulation %s => %j', (input, want) =>
+      expectParseResolve(input).toBe(want),
+    )
+
+    it.each([
+      ['=5+""', 5],
+      ['=5+FALSE', 5],
+      ['=5+TRUE', 6],
+      ['=5-""', 5],
+      ['=5-FALSE', 5],
+      ['=5-TRUE', 4],
+      ['=-""', -0],
+      ['=-FALSE', -0],
+      ['=-TRUE', -1],
+      ['=""*100', 0],
+      ['=FALSE*100', 0],
+      ['=TRUE*100', 100],
+      ['=""/2', 0],
+      ['=8/TRUE', 8],
+      ['=FALSE/TRUE', 0],
+      ['=4**""', 1],
+      ['=4**FALSE', 1],
+      ['=4**TRUE', 4],
+      ['=""**4', 0],
+      ['=TRUE*TRUE', 1],
+      ['=""--""', 0],
+      ['=""-TRUE', -1],
+      ['=(""-TRUE)', -1],
+      ['=(FALSE-"")**TRUE', 0],
+      ['=-+-(++""---TRUE)-FALSE', -1],
+    ])('resolves num-like values in calc %s => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
 
@@ -182,10 +211,14 @@ describe('parse & resolve', () => {
     it.each([
       ['="a"+5'],
       ['=0-"z"'],
+      ['=-"foo"'],
+      ['="Zz"*3'],
+      ['=2*"soon"'],
+      ['="n"*0'],
       ['="t"*"t"*"t"'],
       ['="div"/2'],
       ['="pow"**"pow"'],
-    ])('returns value error on invalid calculation %s', (input) =>
+    ])('returns value error in invalid calc %s', (input) =>
       expectParseResolve(input).toBe(ValErr),
     )
   })
