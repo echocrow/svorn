@@ -22,15 +22,20 @@ const CalcOperator = createToken({
   name: 'CalcOperator',
   pattern: Lexer.NA,
 })
+const AdditionOperator = createToken({
+  name: 'AdditionOperator',
+  pattern: Lexer.NA,
+  categories: CalcOperator,
+})
 export const Plus = createToken({
   name: 'Plus',
   pattern: '+',
-  categories: CalcOperator,
+  categories: AdditionOperator,
 })
 export const Minus = createToken({
   name: 'Minus',
   pattern: '-',
-  categories: CalcOperator,
+  categories: AdditionOperator,
 })
 export const Multi = createToken({
   name: 'Multi',
@@ -64,14 +69,20 @@ const CellName = createToken({
   name: 'CellName',
   pattern: /[A-Z]+[1-9]\d*/,
 })
+const Boolean = createToken({
+  name: 'Boolean',
+  pattern: Lexer.NA,
+})
 export const True = createToken({
   name: 'TRUE',
   pattern: 'TRUE',
+  categories: Boolean,
   longer_alt: FormulaName,
 })
 export const False = createToken({
   name: 'FALSE',
   pattern: 'FALSE',
+  categories: Boolean,
   longer_alt: FormulaName,
 })
 const WhiteSpace = createToken({
@@ -104,9 +115,11 @@ const tokenModes: IMultiModeLexerDefinition = {
       Div,
       Plus,
       Minus,
+      AdditionOperator,
       CalcOperator,
       True,
       False,
+      Boolean,
       CellName,
       FormulaName,
       NumberLiteral,
@@ -179,12 +192,16 @@ class Parser extends CstParser {
     this.OR([
       { ALT: () => this.SUBRULE(this.parenExpression) },
       { ALT: () => this.SUBRULE(this.functionExpression) },
+      { ALT: () => this.SUBRULE(this.atomicNumber) },
       { ALT: () => this.CONSUME(CellName) },
-      { ALT: () => this.CONSUME(NumberLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
-      { ALT: () => this.CONSUME(True) },
-      { ALT: () => this.CONSUME(False) },
+      { ALT: () => this.CONSUME(Boolean) },
     ])
+  })
+
+  private atomicNumber = this.RULE('atomicNumber', () => {
+    this.MANY(() => this.CONSUME(AdditionOperator, { LABEL: 'ops' }))
+    this.CONSUME(NumberLiteral, { LABEL: 'number' })
   })
 
   private parenExpression = this.RULE('parenExpression', () => {

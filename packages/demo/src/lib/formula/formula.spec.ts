@@ -122,6 +122,20 @@ describe('parse & resolve', () => {
     ])('resolves brackets first %s => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
+    it.each([
+      ['=+1', 1],
+      ['=++5', 5],
+      ['=+++4', 4],
+      ['=++++8', 8],
+      ['=-2', -2],
+      ['=+-3', -3],
+      ['=+--1', 1],
+      ['=-+-+-8', -8],
+      ['=11*-2', -22],
+      ['=11*--3', 33],
+    ])('supports consecutive +/- operators %s => %j', (input, want) =>
+      expectParseResolve(input).toBe(want),
+    )
 
     it.each([
       ['="a"+"B"+"c"', 'aBc'],

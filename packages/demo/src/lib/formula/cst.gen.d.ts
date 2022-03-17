@@ -69,11 +69,20 @@ export interface AtomicExpressionCstNode extends CstNode {
 export type AtomicExpressionCstChildren = {
   parenExpression?: ParenExpressionCstNode[];
   functionExpression?: FunctionExpressionCstNode[];
+  atomicNumber?: AtomicNumberCstNode[];
   CellName?: IToken[];
-  NumberLiteral?: IToken[];
   StringLiteral?: IToken[];
-  TRUE?: IToken[];
-  FALSE?: IToken[];
+  Boolean?: IToken[];
+};
+
+export interface AtomicNumberCstNode extends CstNode {
+  name: "atomicNumber";
+  children: AtomicNumberCstChildren;
+}
+
+export type AtomicNumberCstChildren = {
+  ops?: IToken[];
+  number: IToken[];
 };
 
 export interface ParenExpressionCstNode extends CstNode {
@@ -108,6 +117,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   formula(children: FormulaCstChildren, param?: IN): OUT;
   calcExpression(children: CalcExpressionCstChildren, param?: IN): OUT;
   atomicExpression(children: AtomicExpressionCstChildren, param?: IN): OUT;
+  atomicNumber(children: AtomicNumberCstChildren, param?: IN): OUT;
   parenExpression(children: ParenExpressionCstChildren, param?: IN): OUT;
   functionExpression(children: FunctionExpressionCstChildren, param?: IN): OUT;
 }

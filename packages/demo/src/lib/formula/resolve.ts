@@ -1,10 +1,16 @@
-import type { CstNode, TokenType } from 'chevrotain'
+import {
+  type CstNode,
+  type IToken,
+  type TokenType,
+  tokenMatcher,
+} from 'chevrotain'
 
 import { type CellValue, type CellValues, CellError } from '$lib/cells'
 import { exactMatch } from '$lib/utils'
 
 import type {
   AtomicExpressionCstChildren,
+  AtomicNumberCstChildren,
   CalcExpressionCstChildren,
   FormulaCstChildren,
   FunctionExpressionCstChildren,
@@ -127,11 +133,11 @@ class Interpreter extends BaseCstVisitor {
     const left = this.visit(ctx.lhs) as CellValue
     const rights = (ctx.rhs ?? []).map((r) => this.visit(r) as CellValue)
 
-    const ops = (ctx.ops ?? []).map((o) => o.tokenType)
+    const ops = ctx.ops ?? []
     if (ops.length !== rights.length) return RuntimeErr
 
     // Serialize values and operators.
-    let items = ops.reduce<(CellValue | TokenType)[]>(
+    let items = ops.reduce<(CellValue | IToken)[]>(
       (items, op, i) => items.concat([op, rights[i] as CellValue]),
       [left],
     )
@@ -140,9 +146,9 @@ class Interpreter extends BaseCstVisitor {
       const newItems: typeof items = []
       let buffer = items[0] as CellValue
       for (let i = 1; i < items.length; i += 2) {
-        const op = items[i] as TokenType
+        const op = items[i] as IToken
         const val = items[i + 1] as CellValue
-        const [_, calc] = calcPhase.find(([tkn]) => tkn === op) ?? []
+        const [_, calc] = calcPhase.find(([tkn]) => tokenMatcher(op, tkn)) ?? []
         if (calc) {
           buffer = calc(buffer, val)
         } else {
@@ -162,20 +168,27 @@ class Interpreter extends BaseCstVisitor {
 
     if (ctx.functionExpression) return this.visit(ctx.functionExpression)
 
+    if (ctx.atomicNumber) return this.visit(ctx.atomicNumber)
+
     if (ctx.CellName) {
       const cellName = ctx.CellName?.[0]?.image ?? ''
       return this.#cellValues[cellName] ?? ''
     }
 
-    if (ctx.NumberLiteral)
-      return parseFloat(ctx.NumberLiteral?.[0]?.image ?? '')
-
     if (ctx.StringLiteral)
       return resolveStringLiteral(ctx.StringLiteral?.[0]?.image ?? '')
-    if (ctx.TRUE) return true
-    if (ctx.FALSE) return false
+    if (ctx.Boolean) return this.resolveBoolean(ctx.Boolean[0] as IToken)
 
     return RuntimeErr
+  }
+
+  protected atomicNumber(ctx: AtomicNumberCstChildren): CellValue {
+    const num = parseFloat(ctx.number[0]?.image ?? '')
+    // Sign multiplier based on number of Minus operators.
+    const sign = ctx.ops
+      ? (ctx.ops.filter((op) => tokenMatcher(op, Minus)).length % 2) * -2 + 1
+      : 1
+    return num * sign
   }
 
   protected parenExpression(ctx: ParenExpressionCstChildren): CellValue {
@@ -185,6 +198,10 @@ class Interpreter extends BaseCstVisitor {
   protected functionExpression(ctx: FunctionExpressionCstChildren): CellValue {
     // @todo Implement custom functions.
     return RuntimeErr
+  }
+
+  private resolveBoolean(token: IToken): boolean {
+    return tokenMatcher(token, True)
   }
 }
 
