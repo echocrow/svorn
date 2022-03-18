@@ -26,6 +26,7 @@ import { Div, Minus, Multi, parser, Plus, Pow, True } from './parse'
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor()
 
 export const ValErr = new CellError('VALUE', 'Value not supported')
+export const DivZeroErr = new CellError('DIV/0', 'Cannot divide by zero')
 export const RuntimeErr = new CellError('ERROR', 'Unexpected runtime error')
 
 type CalcFn = (a: CellValue, b: CellValue) => CellValue
@@ -56,6 +57,7 @@ const calcDivide: CalcFn = (a, b) => {
   a = resolveForCalc(a)
   b = resolveForCalc(b)
   if (typeof a !== 'number' || typeof b !== 'number') return ValErr
+  if (b == 0) return DivZeroErr
   return a / b
 }
 const calcAdd: CalcFn = (a, b) => {

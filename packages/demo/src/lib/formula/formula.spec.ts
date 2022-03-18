@@ -1,7 +1,7 @@
 import type { CellValues } from '$lib/cells'
 
 import parse from './parse'
-import resolve, { ValErr } from './resolve'
+import resolve, { DivZeroErr, ValErr } from './resolve'
 
 const expectEmptyArray = (val: unknown) => expect(val).toEqual([])
 
@@ -220,6 +220,10 @@ describe('parse & resolve', () => {
       ['="pow"**"pow"'],
     ])('returns value error in invalid calc %s', (input) =>
       expectParseResolve(input).toBe(ValErr),
+    )
+    it.each([['=4/0'], ['=0/0'], ['=(4-4)/(8-8)'], ['=42/""']])(
+      'returns div/0 error when dividing by zero %s',
+      (input) => expectParseResolve(input).toBe(DivZeroErr),
     )
 
     it.todo("strings with escaped '\"'")
