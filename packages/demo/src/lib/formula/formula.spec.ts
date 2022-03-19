@@ -225,6 +225,20 @@ describe('parse & resolve', () => {
       'returns div/0 error when dividing by zero %s',
       (input) => expectParseResolve(input).toBe(DivZeroErr),
     )
+    it.each([
+      ['="foo"+5/0', DivZeroErr],
+      ['="foo"-5/0', DivZeroErr],
+      ['="foo"*(5/0)', DivZeroErr],
+      ['="foo"/(5/0)', DivZeroErr],
+      ['="foo"**(5/0)', DivZeroErr],
+      ['=5/0+"foo"', DivZeroErr],
+      ['=5/0-"foo"', DivZeroErr],
+      ['=5/0*"foo"', DivZeroErr],
+      ['=5/0/"foo"', DivZeroErr],
+      ['="foo"+TRUE+5/0', ValErr],
+    ])('tracks and propagates errors in calc %s => %s', (input, err) =>
+      expectParseResolve(input).toBe(err),
+    )
 
     it.todo("strings with escaped '\"'")
 

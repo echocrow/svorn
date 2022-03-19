@@ -31,48 +31,57 @@ export const RuntimeErr = new CellError('ERROR', 'Unexpected runtime error')
 
 type CalcFn = (a: CellValue, b: CellValue) => CellValue
 
-const resolveForCalc = (val: CellValue): number | CellValue =>
-  typeof val === 'number'
-    ? val
-    : typeof val === 'string'
-    ? val || 0
-    : typeof val === 'boolean'
-    ? Number(val)
-    : val
+const resolveCalcNum = (val: CellValue): number => {
+  const newVal =
+    typeof val === 'number'
+      ? val
+      : typeof val === 'string'
+      ? val || 0
+      : typeof val === 'boolean'
+      ? Number(val)
+      : val
+  if (typeof newVal !== 'number')
+    throw newVal instanceof CellError ? newVal : ValErr
+  return newVal
+}
+const resolveCalcArgs = (a: CellValue, b: CellValue): [number, number] => {
+  if (a instanceof Error) throw a
+  if (b instanceof Error) throw b
+  return [resolveCalcNum(a), resolveCalcNum(b)]
+}
+const makeCalc =
+  (calc: CalcFn): CalcFn =>
+  (a, b) => {
+    try {
+      return calc(a, b)
+    } catch (err) {
+      return err instanceof CellError ? err : RuntimeErr
+    }
+  }
 
-const calcPow: CalcFn = (a, b) => {
-  a = resolveForCalc(a)
-  b = resolveForCalc(b)
-  if (typeof a !== 'number' || typeof b !== 'number') return ValErr
+const calcPow = makeCalc((a, b) => {
+  ;[a, b] = resolveCalcArgs(a, b)
   return a ** b
-}
-const calcMultiply: CalcFn = (a, b) => {
+})
+const calcMultiply = makeCalc((a, b) => {
   if (typeof a === 'number' && typeof b === 'string') return calcMultiply(b, a)
-  a = resolveForCalc(a)
-  b = resolveForCalc(b)
-  if (typeof a !== 'number' || typeof b !== 'number') return ValErr
+  ;[a, b] = resolveCalcArgs(a, b)
   return a * b
-}
-const calcDivide: CalcFn = (a, b) => {
-  a = resolveForCalc(a)
-  b = resolveForCalc(b)
-  if (typeof a !== 'number' || typeof b !== 'number') return ValErr
-  if (b == 0) return DivZeroErr
+})
+const calcDivide = makeCalc((a, b) => {
+  ;[a, b] = resolveCalcArgs(a, b)
+  if (b == 0) throw DivZeroErr
   return a / b
-}
-const calcAdd: CalcFn = (a, b) => {
+})
+const calcAdd = makeCalc((a, b) => {
   if (typeof a === 'string' && typeof b === 'string') return a + b
-  a = resolveForCalc(a)
-  b = resolveForCalc(b)
-  if (typeof a !== 'number' || typeof b !== 'number') return ValErr
+  ;[a, b] = resolveCalcArgs(a, b)
   return a + b
-}
-const calcSubtract: CalcFn = (a, b) => {
-  a = resolveForCalc(a)
-  b = resolveForCalc(b)
-  if (typeof a !== 'number' || typeof b !== 'number') return ValErr
+})
+const calcSubtract = makeCalc((a, b) => {
+  ;[a, b] = resolveCalcArgs(a, b)
   return a - b
-}
+})
 
 const resolveNumberLiteral = (token: IToken | undefined): number =>
   parseFloat(token?.image ?? '')
