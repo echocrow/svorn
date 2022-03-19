@@ -221,9 +221,9 @@ class Interpreter extends BaseCstVisitor {
     if (ctx.NumberLiteral) return resolveNumberLiteral(ctx.NumberLiteral[0])
 
     if (ctx.StringLiteral) {
-      const rawBody = (ctx.StringLiteral?.[0]?.image ?? '').slice(1, -1)
-      // @todo Remove escaped quotes
-      return rawBody
+      return (ctx.StringLiteral?.[0]?.image ?? '')
+        .slice(1, -1)
+        .replace(/""/g, '"')
     }
 
     if (ctx.Boolean) return resolveBoolean(ctx.Boolean[0])

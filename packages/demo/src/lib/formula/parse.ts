@@ -63,7 +63,7 @@ const FormulaName = createToken({
 })
 const StringLiteral = createToken({
   name: 'StringLiteral',
-  pattern: /"(:?[^\\"]|\\["\\])*"/,
+  pattern: /"(:?[^"]|"")*"/,
 })
 const NumberLiteral = createToken({
   name: 'NumberLiteral',

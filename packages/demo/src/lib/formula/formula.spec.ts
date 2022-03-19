@@ -159,6 +159,15 @@ describe('parse & resolve', () => {
     )
 
     it.each([
+      ['=""""', '"'],
+      ['=""""""', '""'],
+      ['="foo""bar"', 'foo"bar'],
+      ['="foo""""""bar"', 'foo"""bar'],
+    ])('resolves escaped double-quotes in strings %s => %j', (input, want) =>
+      expectParseResolve(input).toBe(want),
+    )
+
+    it.each([
       ['=5+""', 5],
       ['=5+FALSE', 5],
       ['=5+TRUE', 6],
@@ -246,12 +255,11 @@ describe('parse & resolve', () => {
       '=()',
       '="foo""',
       '="foo"bar"',
-      '="foo\\\\"bar"',
+      '="foo\\"bar"',
+      '="foo"""bar"',
     ])('returns ParseErr on invalid input %s => %j', (input) =>
       expectParseResolve(input).toBe(ParseErr),
     )
-
-    it.todo("strings with escaped '\"'")
 
     it.todo('formulas')
   })
