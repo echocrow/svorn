@@ -21,13 +21,23 @@ import type {
   PlainCstChildren,
   TextCstChildren,
 } from './cst.gen'
-import { Div, Minus, Multi, parser, Plus, Pow, True } from './parse'
+import {
+  type ParseResult,
+  Div,
+  Minus,
+  Multi,
+  parser,
+  Plus,
+  Pow,
+  True,
+} from './parse'
 
 const BaseCstVisitor = parser.getBaseCstVisitorConstructor()
 
 export const ValErr = new CellError('VALUE', 'Value not supported')
 export const DivZeroErr = new CellError('DIV/0', 'Cannot divide by zero')
 export const RuntimeErr = new CellError('ERROR', 'Unexpected runtime error')
+export const ParseErr = new CellError('ERROR', 'Invalid input')
 
 type CalcFn = (a: CellValue, b: CellValue) => CellValue
 
@@ -235,11 +245,11 @@ class Interpreter extends BaseCstVisitor {
 const interpreter = new Interpreter()
 
 const resolve = (
-  cst: CstNode,
+  parsed: ParseResult,
   cellValues: Record<string, CellValue>,
-): CellValue => {
-  const cellValue = interpreter.interpret(cst, cellValues)
-  return cellValue
-}
+): CellValue =>
+  parsed.lexErrors.length || parsed.parseErrors.length
+    ? ParseErr
+    : interpreter.interpret(parsed.cst, cellValues)
 
 export default resolve

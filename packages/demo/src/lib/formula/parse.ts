@@ -1,5 +1,8 @@
 import {
+  type CstNode,
+  type ILexingError,
   type IMultiModeLexerDefinition,
+  type IRecognitionException,
   type TokenType,
   createToken,
   CstParser,
@@ -290,7 +293,14 @@ class Parser extends CstParser {
 export const parser = new Parser()
 export const productions = parser.getGAstProductions()
 
-const parse = (text: string) => {
+export interface ParseResult {
+  readonly cst: CstNode
+  readonly cells: Set<string>
+  readonly lexErrors: ILexingError[]
+  readonly parseErrors: IRecognitionException[]
+}
+
+const parse = (text: string): ParseResult => {
   const lexResult = lexer.tokenize(text)
   parser.input = lexResult.tokens
   const cst = parser.parseInput()
@@ -304,7 +314,7 @@ const parse = (text: string) => {
     cells,
     lexErrors: lexResult.errors,
     parseErrors: parser.errors,
-  } as const
+  }
 }
 
 export default parse

@@ -1,4 +1,3 @@
-import type { CstNode } from 'chevrotain'
 import { combineLatest, Observable, of, switchMap } from 'rxjs'
 import { derived, derivedFamily, writable, writableFamily } from 'svorn'
 
@@ -10,7 +9,7 @@ import {
   nameCell,
   parseCellName,
 } from './cells'
-import parse from './formula/parse'
+import parse, { type ParseResult } from './formula/parse'
 import resolve from './formula/resolve'
 import { clamp } from './utils'
 
@@ -63,11 +62,11 @@ export const resolvedCells = derivedFamily((cell: string) => ({
   source: parsedCells
     .get(cell)
     .pipe(
-      switchMap((res) =>
-        combineLatest([of(res.cst), combineCellDeps(res.cells)]),
+      switchMap((parsed) =>
+        combineLatest([of(parsed), combineCellDeps(parsed.cells)]),
       ),
     ),
-  then: ([cst, values]: [CstNode, CellValues]) => resolve(cst, values),
+  then: ([parsed, vals]: [ParseResult, CellValues]) => resolve(parsed, vals),
   catch: () => CircularDepErr,
 }))
 

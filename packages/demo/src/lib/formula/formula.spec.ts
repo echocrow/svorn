@@ -1,15 +1,13 @@
 import type { CellValues } from '$lib/cells'
 
 import parse from './parse'
-import resolve, { DivZeroErr, ValErr } from './resolve'
+import resolve, { DivZeroErr, ParseErr, ValErr } from './resolve'
 
 const expectEmptyArray = (val: unknown) => expect(val).toEqual([])
 
 const expectParseResolve = (input: string, values: CellValues = {}) => {
   const parsed = parse(input)
-  expectEmptyArray(parsed.lexErrors)
-  expectEmptyArray(parsed.parseErrors)
-  const resolved = resolve(parsed.cst, values)
+  const resolved = resolve(parsed, values)
   return expect(resolved)
 }
 
@@ -238,6 +236,19 @@ describe('parse & resolve', () => {
       ['="foo"+TRUE+5/0', ValErr],
     ])('tracks and propagates errors in calc %s => %s', (input, err) =>
       expectParseResolve(input).toBe(err),
+    )
+
+    it.each([
+      '=',
+      '==',
+      '="',
+      '=5+',
+      '=()',
+      '="foo""',
+      '="foo"bar"',
+      '="foo\\\\"bar"',
+    ])('returns ParseErr on invalid input %s => %j', (input) =>
+      expectParseResolve(input).toBe(ParseErr),
     )
 
     it.todo("strings with escaped '\"'")
