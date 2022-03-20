@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currCell } from '$lib/store'
+  import { currCell } from '#lib/store'
 
   import CellInput from './CellInput.svelte'
 

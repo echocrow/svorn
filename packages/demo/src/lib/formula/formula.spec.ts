@@ -1,4 +1,4 @@
-import type { CellValues } from '$lib/cells'
+import type { CellValues } from '#lib/cells'
 
 import parse from './parse'
 import resolve, { DivZeroErr, ParseErr, ValErr } from './resolve'

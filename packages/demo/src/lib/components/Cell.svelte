@@ -1,8 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
 
-  import { nameCell } from '$lib/cells'
-  import { resolvedCells, setCurrCellCoords } from '$lib/store'
+  import { nameCell } from '#lib/cells'
+  import { resolvedCells, setCurrCellCoords } from '#lib/store'
 
   const DOUBLE_CLICK_THRESHOLD = 300
 

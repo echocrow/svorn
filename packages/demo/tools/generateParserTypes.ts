@@ -2,8 +2,7 @@ import { generateCstDts } from 'chevrotain'
 import { writeFileSync } from 'fs'
 import { basename, resolve } from 'path'
 
-// ts-node seems bugged; need to explicitly set ".js" extension.
-import { productions } from '../src/lib/formula/parse.js'
+import { productions } from '#lib/formula/parse'
 
 const filename = basename(import.meta.url)
 

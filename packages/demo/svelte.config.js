@@ -1,4 +1,5 @@
 import adapter from '@sveltejs/adapter-auto'
+import { resolve } from 'path'
 import preprocess from 'svelte-preprocess'
 import WindiCSS from 'vite-plugin-windicss'
 
@@ -12,6 +13,11 @@ const config = {
     adapter: adapter(),
     vite: {
       plugins: [WindiCSS()],
+      resolve: {
+        alias: {
+          '#lib': resolve('./src/lib'),
+        },
+      },
     },
   },
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { nameCell, nameCol, nameRow } from '$lib/cells'
+  import { nameCell, nameCol, nameRow } from '#lib/cells'
   import {
     cells,
     colsLen,
@@ -7,7 +7,7 @@
     currCellName,
     moveCurrCellCoords,
     rowsLen,
-  } from '$lib/store'
+  } from '#lib/store'
 
   import Cell from './Cell.svelte'
   import CellInput from './CellInput.svelte'

@@ -4,7 +4,7 @@ import baseConfig from '../../jest.config.js'
 const config = {
   ...baseConfig,
   moduleNameMapper: {
-    '^\\$lib/(.*)$': '<rootDir>/src/lib/$1',
+    '^#lib/(.*)$': '<rootDir>/src/lib/$1',
   },
 }
 

@@ -5,8 +5,8 @@ import {
   tokenMatcher,
 } from 'chevrotain'
 
-import { type CellValue, type CellValues, CellError } from '$lib/cells'
-import { IS_DEV_ENV } from '$lib/utils'
+import { type CellValue, type CellValues, CellError } from '#lib/cells'
+import { IS_DEV_ENV } from '#lib/utils'
 
 import type {
   AtomicExpressionCstChildren,
