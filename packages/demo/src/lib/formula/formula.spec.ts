@@ -310,6 +310,90 @@ describe('parse & resolve', () => {
         )
         it.todo('condition expressions')
       })
+
+      describe('floor', () => {
+        it.each([
+          ['=FLOOR(4)', 4],
+          ['=FLOOR(11.5)', 11],
+          ['=FLOOR(0.001)', 0],
+
+          ['=FLOOR(FALSE)', 0],
+          ['=FLOOR("")', 0],
+          ['=FLOOR(TRUE)', 1],
+
+          ['=FLOOR("txt")', ValErr],
+          ['=FLOOR(0/0)', DivZeroErr],
+          ['=FLOOR(INVALIDFN())', FuncNameErr],
+
+          ['=FLOOR()', FuncArgsErr],
+          ['=FLOOR(1, 2)', FuncArgsErr],
+        ])('resolves %s => %j', (input, want) =>
+          expectParseResolve(input, {
+            B1: true,
+            B2: false,
+            C1: 1,
+            C2: 2,
+          }).toBe(want),
+        )
+        it.todo('optional factor arg')
+      })
+      describe('ceiling', () => {
+        it.each([
+          ['=CEILING(4)', 4],
+          ['=CEILING(11.5)', 12],
+          ['=CEILING(0.001)', 1],
+
+          ['=CEILING(FALSE)', 0],
+          ['=CEILING("")', 0],
+          ['=CEILING(TRUE)', 1],
+
+          ['=CEILING("txt")', ValErr],
+          ['=CEILING(0/0)', DivZeroErr],
+          ['=CEILING(INVALIDFN())', FuncNameErr],
+
+          ['=CEILING()', FuncArgsErr],
+          ['=CEILING(1, 2)', FuncArgsErr],
+        ])('resolves %s => %j', (input, want) =>
+          expectParseResolve(input, {
+            B1: true,
+            B2: false,
+            C1: 1,
+            C2: 2,
+          }).toBe(want),
+        )
+        it.todo('optional factor arg')
+      })
+      describe('round', () => {
+        it.each([
+          ['=ROUND(4)', 4],
+          ['=ROUND(11.4999)', 11],
+          ['=ROUND(11.5)', 12],
+          ['=ROUND(0.001)', 0],
+
+          ['=ROUND(4, 2)', 4],
+          ['=ROUND(1.23456, 2)', 1.23],
+          ['=ROUND(1.23456, 3)', 1.235],
+          ['=ROUND(11.4999, 2)', 11.5],
+
+          ['=ROUND(FALSE)', 0],
+          ['=ROUND("")', 0],
+          ['=ROUND(TRUE)', 1],
+
+          ['=ROUND("txt")', ValErr],
+          ['=ROUND(0/0)', DivZeroErr],
+          ['=ROUND(INVALIDFN())', FuncNameErr],
+
+          ['=ROUND()', FuncArgsErr],
+          ['=ROUND(1, 2, 3)', FuncArgsErr],
+        ])('resolves %s => %j', (input, want) =>
+          expectParseResolve(input, {
+            B1: true,
+            B2: false,
+            C1: 1,
+            C2: 2,
+          }).toBe(want),
+        )
+      })
     })
   })
 })

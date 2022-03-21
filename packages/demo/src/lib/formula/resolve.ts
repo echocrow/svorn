@@ -44,7 +44,7 @@ export const FuncArgsErr = new CellError('N/A', 'Wrong number of arguments')
 
 type CalcFn = (a: CellValue, b: CellValue) => CellValue
 
-const resolveCalcNum = (val: CellValue): number => {
+export const resolveCalcNum = (val: CellValue): number => {
   const newVal =
     typeof val === 'number'
       ? val
@@ -255,7 +255,11 @@ class Interpreter extends BaseCstVisitor {
     }, {} as Record<string, CstNode | undefined>)
     const restArgs = args.slice(func.argNames.length)
 
-    return func.resolve(visit, namedArgs, restArgs)
+    try {
+      return func.resolve(visit, namedArgs, restArgs)
+    } catch (err) {
+      return err instanceof CellError ? err : RuntimeErr
+    }
   }
 }
 
