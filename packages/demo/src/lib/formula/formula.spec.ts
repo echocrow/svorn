@@ -82,6 +82,7 @@ describe('parse & resolve', () => {
     ])('resolves %j => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
+    it.todo('floats without leading zero')
   })
 
   describe('formula', () => {
@@ -97,6 +98,7 @@ describe('parse & resolve', () => {
     ])('resolves %j => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
+    it.todo('floats without leading zero')
 
     it.each([
       ['=A1', ''],
@@ -316,6 +318,13 @@ describe('parse & resolve', () => {
           ['=FLOOR(4)', 4],
           ['=FLOOR(11.5)', 11],
           ['=FLOOR(0.001)', 0],
+          ['=FLOOR(-1.2)', -2],
+          ['=FLOOR(-1.9)', -2],
+
+          ['=FLOOR(1.23456, 0.1)', 1.2],
+          ['=FLOOR(1.23456, 0.02)', 1.22],
+          ['=FLOOR(1.23456, 0.5)', 1],
+          ['=FLOOR(1.23456, 0.0005)', 1.2345],
 
           ['=FLOOR(FALSE)', 0],
           ['=FLOOR("")', 0],
@@ -326,7 +335,7 @@ describe('parse & resolve', () => {
           ['=FLOOR(INVALIDFN())', FuncNameErr],
 
           ['=FLOOR()', FuncArgsErr],
-          ['=FLOOR(1, 2)', FuncArgsErr],
+          ['=FLOOR(1, 2, 3)', FuncArgsErr],
         ])('resolves %s => %j', (input, want) =>
           expectParseResolve(input, {
             B1: true,
@@ -335,13 +344,19 @@ describe('parse & resolve', () => {
             C2: 2,
           }).toBe(want),
         )
-        it.todo('optional factor arg')
       })
       describe('ceiling', () => {
         it.each([
           ['=CEILING(4)', 4],
           ['=CEILING(11.5)', 12],
           ['=CEILING(0.001)', 1],
+          ['=CEILING(-1.2)', -1],
+          ['=CEILING(-1.9)', -1],
+
+          ['=CEILING(1.23456, 0.1)', 1.3],
+          ['=CEILING(1.23456, 0.02)', 1.24],
+          ['=CEILING(1.23456, 0.5)', 1.5],
+          ['=CEILING(1.23456, 0.0005)', 1.235],
 
           ['=CEILING(FALSE)', 0],
           ['=CEILING("")', 0],
@@ -352,7 +367,7 @@ describe('parse & resolve', () => {
           ['=CEILING(INVALIDFN())', FuncNameErr],
 
           ['=CEILING()', FuncArgsErr],
-          ['=CEILING(1, 2)', FuncArgsErr],
+          ['=CEILING(1, 2, 3)', FuncArgsErr],
         ])('resolves %s => %j', (input, want) =>
           expectParseResolve(input, {
             B1: true,
@@ -361,7 +376,6 @@ describe('parse & resolve', () => {
             C2: 2,
           }).toBe(want),
         )
-        it.todo('optional factor arg')
       })
       describe('round', () => {
         it.each([

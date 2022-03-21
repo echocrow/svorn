@@ -17,15 +17,35 @@ export const If = makeFunc({
   },
 })
 
+const precisionRound = (num: number, places: number): number => {
+  const pow = 10 ** places
+  return Math.round(num * pow) / pow
+}
+// Deal with float-point
+// @see https://floating-point-gui.de/
+const truncateFloatImprecision = (num: number): number =>
+  precisionRound(num, 10)
 export const Floor = makeFunc({
   name: 'FLOOR',
   args: ['value'] as const,
-  resolve: (visit, args) => Math.floor(resolveCalcNum(visit(args.value))),
+  optArgs: ['factor'] as const,
+  resolve: (visit, args) => {
+    const value = resolveCalcNum(visit(args.value))
+    const factor = args.factor ? resolveCalcNum(visit(args.factor)) : 1
+    const res = Math.floor(value / factor) * factor
+    return truncateFloatImprecision(res)
+  },
 })
 export const Ceiling = makeFunc({
   name: 'CEILING',
   args: ['value'] as const,
-  resolve: (visit, args) => Math.ceil(resolveCalcNum(visit(args.value))),
+  optArgs: ['factor'] as const,
+  resolve: (visit, args) => {
+    const value = resolveCalcNum(visit(args.value))
+    const factor = args.factor ? resolveCalcNum(visit(args.factor)) : 1
+    const res = Math.ceil(value / factor) * factor
+    return truncateFloatImprecision(res)
+  },
 })
 export const Round = makeFunc({
   name: 'ROUND',
@@ -34,8 +54,7 @@ export const Round = makeFunc({
   resolve: (visit, args) => {
     const value = resolveCalcNum(visit(args.value))
     const places = args.places ? resolveCalcNum(visit(args.places)) : 0
-    const pow = 10 ** places
-    return Math.round(value * pow) / pow
+    return precisionRound(value, places)
   },
 })
 
