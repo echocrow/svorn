@@ -72,15 +72,15 @@ export interface FormulaCstNode extends CstNode {
 
 export type FormulaCstChildren = {
   EnterFormula: IToken[];
-  body: CalcExpressionCstNode[];
+  body: OperationCstNode[];
 };
 
-export interface CalcExpressionCstNode extends CstNode {
-  name: "calcExpression";
-  children: CalcExpressionCstChildren;
+export interface OperationCstNode extends CstNode {
+  name: "operation";
+  children: OperationCstChildren;
 }
 
-export type CalcExpressionCstChildren = {
+export type OperationCstChildren = {
   lhs: AtomicExpressionCstNode[];
   ops?: IToken[];
   rhs?: AtomicExpressionCstNode[];
@@ -108,7 +108,7 @@ export interface ParenExpressionCstNode extends CstNode {
 
 export type ParenExpressionCstChildren = {
   LParen: IToken[];
-  inner: CalcExpressionCstNode[];
+  inner: OperationCstNode[];
   RParen: IToken[];
 };
 
@@ -120,7 +120,7 @@ export interface FuncExpressionCstNode extends CstNode {
 export type FuncExpressionCstChildren = {
   fn: IToken[];
   LParen: IToken[];
-  args?: CalcExpressionCstNode[];
+  args?: OperationCstNode[];
   Comma?: IToken[];
   RParen: IToken[];
 };
@@ -133,7 +133,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   magicNumber(children: MagicNumberCstChildren, param?: IN): OUT;
   financeNumber(children: FinanceNumberCstChildren, param?: IN): OUT;
   formula(children: FormulaCstChildren, param?: IN): OUT;
-  calcExpression(children: CalcExpressionCstChildren, param?: IN): OUT;
+  operation(children: OperationCstChildren, param?: IN): OUT;
   atomicExpression(children: AtomicExpressionCstChildren, param?: IN): OUT;
   parenExpression(children: ParenExpressionCstChildren, param?: IN): OUT;
   funcExpression(children: FuncExpressionCstChildren, param?: IN): OUT;

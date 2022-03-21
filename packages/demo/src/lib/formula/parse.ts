@@ -22,14 +22,14 @@ const Colon = createToken({ name: 'Colon', pattern: ':' })
 const LParen = createToken({ name: 'LParen', pattern: '(' })
 const RParen = createToken({ name: 'RParen', pattern: ')' })
 
-const CalcOperator = createToken({
-  name: 'CalcOperator',
+const Operator = createToken({
+  name: 'Operator',
   pattern: Lexer.NA,
 })
 const AdditionOperator = createToken({
   name: 'AdditionOperator',
   pattern: Lexer.NA,
-  categories: CalcOperator,
+  categories: Operator,
 })
 export const Plus = createToken({
   name: 'Plus',
@@ -44,17 +44,47 @@ export const Minus = createToken({
 export const Multi = createToken({
   name: 'Multi',
   pattern: '*',
-  categories: CalcOperator,
+  categories: Operator,
 })
 export const Div = createToken({
   name: 'Div',
   pattern: '/',
-  categories: CalcOperator,
+  categories: Operator,
 })
 export const Pow = createToken({
   name: 'Pow',
   pattern: '**',
-  categories: CalcOperator,
+  categories: Operator,
+})
+export const Equals = createToken({
+  name: 'Equals',
+  pattern: '=',
+  categories: Operator,
+})
+export const NotEquals = createToken({
+  name: 'NotEquals',
+  pattern: /(?:!=)|(?:<>)/,
+  categories: Operator,
+})
+export const LessThan = createToken({
+  name: 'LessThan',
+  pattern: '<',
+  categories: Operator,
+})
+export const LessOrEqual = createToken({
+  name: 'LessOrEqual',
+  pattern: '<=',
+  categories: Operator,
+})
+export const GreaterThan = createToken({
+  name: 'GreaterThan',
+  pattern: '>',
+  categories: Operator,
+})
+export const GreaterOrEqual = createToken({
+  name: 'GreaterOrEqual',
+  pattern: '>=',
+  categories: Operator,
 })
 
 const FuncName = createToken({
@@ -157,6 +187,12 @@ const tokenModes: IMultiModeLexerDefinition = {
       Div,
       Plus,
       Minus,
+      Equals,
+      NotEquals,
+      LessOrEqual,
+      LessThan,
+      GreaterOrEqual,
+      GreaterThan,
       True,
       False,
       CellName,
@@ -246,13 +282,13 @@ class Parser extends CstParser {
 
   private formula = this.RULE('formula', () => {
     this.CONSUME(EnterFormula)
-    this.SUBRULE(this.calcExpression, { LABEL: 'body' })
+    this.SUBRULE(this.operation, { LABEL: 'body' })
   })
 
-  private calcExpression = this.RULE('calcExpression', () => {
+  private operation = this.RULE('operation', () => {
     this.SUBRULE(this.atomicExpression, { LABEL: 'lhs' })
     this.MANY(() => {
-      this.CONSUME(CalcOperator, { LABEL: 'ops' })
+      this.CONSUME(Operator, { LABEL: 'ops' })
       this.SUBRULE1(this.atomicExpression, { LABEL: 'rhs' })
     })
   })
@@ -271,7 +307,7 @@ class Parser extends CstParser {
 
   private parenExpression = this.RULE('parenExpression', () => {
     this.CONSUME(LParen)
-    this.SUBRULE(this.calcExpression, { LABEL: 'inner' })
+    this.SUBRULE(this.operation, { LABEL: 'inner' })
     this.CONSUME(RParen)
   })
 
@@ -279,7 +315,7 @@ class Parser extends CstParser {
     this.CONSUME(FuncName, { LABEL: 'fn' })
     this.CONSUME(LParen)
     this.MANY_SEP({
-      DEF: () => this.SUBRULE(this.calcExpression, { LABEL: 'args' }),
+      DEF: () => this.SUBRULE(this.operation, { LABEL: 'args' }),
       SEP: Comma,
     })
     this.CONSUME(RParen)

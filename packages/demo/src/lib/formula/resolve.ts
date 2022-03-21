@@ -10,12 +10,12 @@ import { IS_DEV_ENV } from '#lib/utils'
 
 import type {
   AtomicExpressionCstChildren,
-  CalcExpressionCstChildren,
   FinanceNumberCstChildren,
   FormulaCstChildren,
   FuncExpressionCstChildren,
   MagicNumberCstChildren,
   MagicTextCstChildren,
+  OperationCstChildren,
   ParenExpressionCstChildren,
   ParseInputCstChildren,
   PlainCstChildren,
@@ -25,8 +25,14 @@ import funcs from './functions'
 import {
   type ParseResult,
   Div,
+  Equals,
+  GreaterOrEqual,
+  GreaterThan,
+  LessOrEqual,
+  LessThan,
   Minus,
   Multi,
+  NotEquals,
   parser,
   Plus,
   Pow,
@@ -42,7 +48,7 @@ export const ParseErr = new CellError('ERROR', 'Invalid input')
 export const FuncNameErr = new CellError('NAME', 'Unknown function')
 export const FuncArgsErr = new CellError('N/A', 'Wrong number of arguments')
 
-type CalcFn = (a: CellValue, b: CellValue) => CellValue
+type Operation = (a: CellValue, b: CellValue) => CellValue
 
 export const resolveCalcNum = (val: CellValue): number => {
   const newVal =
@@ -62,39 +68,46 @@ const resolveCalcArgs = (a: CellValue, b: CellValue): [number, number] => {
   if (b instanceof Error) throw b
   return [resolveCalcNum(a), resolveCalcNum(b)]
 }
-const makeCalc =
-  (calc: CalcFn): CalcFn =>
+const makeOp =
+  (opFn: Operation): Operation =>
   (a, b) => {
     try {
-      return calc(a, b)
+      return opFn(a, b)
     } catch (err) {
       return err instanceof CellError ? err : RuntimeErr
     }
   }
 
-const calcPow = makeCalc((a, b) => {
+const calcPow = makeOp((a, b) => {
   ;[a, b] = resolveCalcArgs(a, b)
   return a ** b
 })
-const calcMultiply = makeCalc((a, b) => {
+const calcMultiply = makeOp((a, b) => {
   if (typeof a === 'number' && typeof b === 'string') return calcMultiply(b, a)
   ;[a, b] = resolveCalcArgs(a, b)
   return a * b
 })
-const calcDivide = makeCalc((a, b) => {
+const calcDivide = makeOp((a, b) => {
   ;[a, b] = resolveCalcArgs(a, b)
   if (b == 0) throw DivZeroErr
   return a / b
 })
-const calcAdd = makeCalc((a, b) => {
+const calcAdd = makeOp((a, b) => {
   if (typeof a === 'string' && typeof b === 'string') return a + b
   ;[a, b] = resolveCalcArgs(a, b)
   return a + b
 })
-const calcSubtract = makeCalc((a, b) => {
+const calcSubtract = makeOp((a, b) => {
   ;[a, b] = resolveCalcArgs(a, b)
   return a - b
 })
+
+const compareLessThan = makeOp((a, b) => a < b)
+const compareLessOrEqual = makeOp((a, b) => a <= b)
+const compareGreaterThan = makeOp((a, b) => a > b)
+const compareGreaterOrEqual = makeOp((a, b) => a >= b)
+const compareEquals = makeOp((a, b) => a === b)
+const compareNotEquals = makeOp((a, b) => !compareEquals(a, b))
 
 const resolveNumberLiteral = (token: IToken | undefined): number =>
   parseFloat(token?.image ?? '')
@@ -118,7 +131,7 @@ const resolveAdditionValue = (
     : rhs
 }
 
-const calcPhases: readonly [TokenType, CalcFn][][] = [
+const opPhases: readonly [TokenType, Operation][][] = [
   [[Pow, calcPow]],
   [
     [Multi, calcMultiply],
@@ -127,6 +140,14 @@ const calcPhases: readonly [TokenType, CalcFn][][] = [
   [
     [Plus, calcAdd],
     [Minus, calcSubtract],
+  ],
+  [
+    [LessThan, compareLessThan],
+    [LessOrEqual, compareLessOrEqual],
+    [GreaterThan, compareGreaterThan],
+    [GreaterOrEqual, compareGreaterOrEqual],
+    [Equals, compareEquals],
+    [NotEquals, compareNotEquals],
   ],
 ]
 
@@ -174,7 +195,7 @@ class Interpreter extends BaseCstVisitor {
     return this.visit(ctx.body)
   }
 
-  protected calcExpression(ctx: CalcExpressionCstChildren): CellValue {
+  protected operation(ctx: OperationCstChildren): CellValue {
     const left = this.visit(ctx.lhs) as CellValue
     const rights = (ctx.rhs ?? []).map((r) => this.visit(r) as CellValue)
 
@@ -187,15 +208,15 @@ class Interpreter extends BaseCstVisitor {
       [left],
     )
 
-    for (const calcPhase of calcPhases) {
+    for (const opPhase of opPhases) {
       const newItems: typeof items = []
       let buffer = items[0] as CellValue
       for (let i = 1; i < items.length; i += 2) {
         const op = items[i] as IToken
         const val = items[i + 1] as CellValue
-        const [_, calc] = calcPhase.find(([tkn]) => tokenMatcher(op, tkn)) ?? []
-        if (calc) {
-          buffer = calc(buffer, val)
+        const [_, opFn] = opPhase.find(([tkn]) => tokenMatcher(op, tkn)) ?? []
+        if (opFn) {
+          buffer = opFn(buffer, val)
         } else {
           newItems.push(buffer, op)
           buffer = val

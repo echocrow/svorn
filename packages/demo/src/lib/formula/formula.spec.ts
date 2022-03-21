@@ -90,6 +90,7 @@ describe('parse & resolve', () => {
     ])('resolves %j => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
+    it.todo('percentage numbers')
   })
 
   describe('formula', () => {
@@ -144,6 +145,43 @@ describe('parse & resolve', () => {
     ])('resolves math operators in correct order %s => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
+    it.todo('modulo op')
+    it.each([
+      ['=4<5', true],
+      ['=10<1', false],
+
+      ['=1<=1', true],
+      ['=-1<=1', true],
+      ['=1<=-1', false],
+
+      ['=5>4', true],
+      ['=1>10', false],
+
+      ['=1>=1', true],
+      ['=1>=-1', true],
+      ['=-1>=1', false],
+
+      ['=123=123', true],
+      ['=123=124', false],
+      ['=""=""', true],
+      ['=0=0', true],
+      ['=""=0', false],
+      ['=0=""', false],
+
+      ['=123!=123', false],
+      ['=123!=124', true],
+      ['=0!=0', false],
+      ['=0!=""', true],
+      ['=123<>123', false],
+      ['=123<>124', true],
+      ['=0<>0', false],
+      ['=0<>""', true],
+    ])('resolves comparison operators %s => %j', (input, want) =>
+      expectParseResolve(input).toBe(want),
+    )
+    it.todo('chained comparisons')
+    it.todo('mixed-type comparisons')
+    it.todo('empty value comparisons')
     it.each([
       ['=(1+2)*3', 9],
       ['=10-(1-2)', 11],
@@ -321,7 +359,6 @@ describe('parse & resolve', () => {
             C2: 2,
           }).toBe(want),
         )
-        it.todo('condition expressions')
       })
 
       describe('floor', () => {
