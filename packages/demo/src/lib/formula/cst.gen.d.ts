@@ -94,9 +94,9 @@ export interface AtomicExpressionCstNode extends CstNode {
 export type AtomicExpressionCstChildren = {
   ops?: IToken[];
   parenExpression?: ParenExpressionCstNode[];
-  functionExpression?: FunctionExpressionCstNode[];
-  NumberLiteral?: IToken[];
+  funcExpression?: FuncExpressionCstNode[];
   CellName?: IToken[];
+  NumberLiteral?: IToken[];
   StringLiteral?: IToken[];
   Boolean?: IToken[];
 };
@@ -112,12 +112,12 @@ export type ParenExpressionCstChildren = {
   RParen: IToken[];
 };
 
-export interface FunctionExpressionCstNode extends CstNode {
-  name: "functionExpression";
-  children: FunctionExpressionCstChildren;
+export interface FuncExpressionCstNode extends CstNode {
+  name: "funcExpression";
+  children: FuncExpressionCstChildren;
 }
 
-export type FunctionExpressionCstChildren = {
+export type FuncExpressionCstChildren = {
   fn: IToken[];
   LParen: IToken[];
   args?: CalcExpressionCstNode[];
@@ -136,5 +136,5 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   calcExpression(children: CalcExpressionCstChildren, param?: IN): OUT;
   atomicExpression(children: AtomicExpressionCstChildren, param?: IN): OUT;
   parenExpression(children: ParenExpressionCstChildren, param?: IN): OUT;
-  functionExpression(children: FunctionExpressionCstChildren, param?: IN): OUT;
+  funcExpression(children: FuncExpressionCstChildren, param?: IN): OUT;
 }

@@ -13,7 +13,7 @@ import type {
   CalcExpressionCstChildren,
   FinanceNumberCstChildren,
   FormulaCstChildren,
-  FunctionExpressionCstChildren,
+  FuncExpressionCstChildren,
   MagicNumberCstChildren,
   MagicTextCstChildren,
   ParenExpressionCstChildren,
@@ -21,6 +21,7 @@ import type {
   PlainCstChildren,
   TextCstChildren,
 } from './cst.gen'
+import funcs from './functions'
 import {
   type ParseResult,
   Div,
@@ -38,6 +39,8 @@ export const ValErr = new CellError('VALUE', 'Value not supported')
 export const DivZeroErr = new CellError('DIV/0', 'Cannot divide by zero')
 export const RuntimeErr = new CellError('ERROR', 'Unexpected runtime error')
 export const ParseErr = new CellError('ERROR', 'Invalid input')
+export const FuncNameErr = new CellError('NAME', 'Unknown function')
+export const FuncArgsErr = new CellError('N/A', 'Wrong number of arguments')
 
 type CalcFn = (a: CellValue, b: CellValue) => CellValue
 
@@ -211,7 +214,7 @@ class Interpreter extends BaseCstVisitor {
   private resolveAtomicExpression(ctx: AtomicExpressionCstChildren): CellValue {
     if (ctx.parenExpression) return this.visit(ctx.parenExpression)
 
-    if (ctx.functionExpression) return this.visit(ctx.functionExpression)
+    if (ctx.funcExpression) return this.visit(ctx.funcExpression)
 
     if (ctx.CellName) {
       const cellName = ctx.CellName?.[0]?.image ?? ''
@@ -235,9 +238,24 @@ class Interpreter extends BaseCstVisitor {
     return this.visit(ctx.inner)
   }
 
-  protected functionExpression(ctx: FunctionExpressionCstChildren): CellValue {
-    // @todo Implement custom functions.
-    return RuntimeErr
+  protected funcExpression(ctx: FuncExpressionCstChildren): CellValue {
+    const fnName = ctx.fn[0]?.image ?? ''
+    const func = funcs[fnName]
+    if (!func) return FuncNameErr
+
+    const args = ctx.args ?? []
+    if (args.length < func.minArgs) return FuncArgsErr
+    if (args.length > func.maxArgs) return FuncArgsErr
+
+    const visit = (ctx: CstNode) => this.visit(ctx)
+
+    const namedArgs = func.argNames.reduce((namedArgs, argName, i) => {
+      namedArgs[argName] = args[i]
+      return namedArgs
+    }, {} as Record<string, CstNode | undefined>)
+    const restArgs = args.slice(func.argNames.length)
+
+    return func.resolve(visit, namedArgs, restArgs)
   }
 }
 

@@ -1,7 +1,13 @@
 import type { CellValues } from '#lib/cells'
 
 import parse from './parse'
-import resolve, { DivZeroErr, ParseErr, ValErr } from './resolve'
+import resolve, {
+  DivZeroErr,
+  FuncArgsErr,
+  FuncNameErr,
+  ParseErr,
+  ValErr,
+} from './resolve'
 
 const expectEmptyArray = (val: unknown) => expect(val).toEqual([])
 
@@ -261,6 +267,49 @@ describe('parse & resolve', () => {
       expectParseResolve(input).toBe(ParseErr),
     )
 
-    it.todo('formulas')
+    describe('functions', () => {
+      it.each(['=UNKNOWNFN()', '=IFOOBAR(1, 2, 3)'])(
+        'returns error when function does not exists %s',
+        (input) => expectParseResolve(input).toBe(FuncNameErr),
+      )
+
+      describe('if', () => {
+        it.each([
+          ['=IF(TRUE, 4, 5)', 4],
+          ['=IF(FALSE, 4, 5)', 5],
+          ['=IF(1, "yes", "no")', 'yes'],
+          ['=IF(0, "yes", "no")', 'no'],
+          ['=IF("txt", TRUE, FALSE)', true],
+          ['=IF("", TRUE, FALSE)', false],
+          ['=IF(B1, C1, C2)', 1],
+          ['=IF(B2, C1, C2)', 2],
+          ['=IF(C1-1, "foo", "bar")', 'bar'],
+          ['=IF(C2-1, "foo", "bar")', 'foo'],
+          ['=IF(TRUE, 1, 0/0)', 1],
+          ['=IF(Z9, "foo"+2, 2)', 2],
+
+          ['=IF(TRUE, "foo"+2, "")', ValErr],
+          ['=IF(FALSE, 1, 0/0)', DivZeroErr],
+
+          ['=IF("bar"+2, 3, 4)', ValErr],
+          ['=IF(0/0, 3, 4)', DivZeroErr],
+          ['=IF(INVALIDFN(), 3, 4)', FuncNameErr],
+
+          ['=IF()', FuncArgsErr],
+          ['=IF(1, 2, 3, 4)', FuncArgsErr],
+
+          ['=IF(TRUE, "a")', 'a'],
+          ['=IF(FALSE, "a")', ''],
+        ])('resolves %s => %j', (input, want) =>
+          expectParseResolve(input, {
+            B1: true,
+            B2: false,
+            C1: 1,
+            C2: 2,
+          }).toBe(want),
+        )
+        it.todo('condition expressions')
+      })
+    })
   })
 })

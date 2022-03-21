@@ -57,8 +57,8 @@ export const Pow = createToken({
   categories: CalcOperator,
 })
 
-const FormulaName = createToken({
-  name: 'FormulaName',
+const FuncName = createToken({
+  name: 'FuncName',
   pattern: /[A-Z]+/,
 })
 const StringLiteral = createToken({
@@ -81,13 +81,13 @@ export const True = createToken({
   name: 'TRUE',
   pattern: 'TRUE',
   categories: Boolean,
-  longer_alt: FormulaName,
+  longer_alt: FuncName,
 })
 export const False = createToken({
   name: 'FALSE',
   pattern: 'FALSE',
   categories: Boolean,
-  longer_alt: FormulaName,
+  longer_alt: FuncName,
 })
 const WhiteSpace = createToken({
   name: 'Whitespace',
@@ -160,7 +160,7 @@ const tokenModes: IMultiModeLexerDefinition = {
       True,
       False,
       CellName,
-      FormulaName,
+      FuncName,
       NumberLiteral,
       StringLiteral,
       LParen,
@@ -261,7 +261,7 @@ class Parser extends CstParser {
     this.MANY(() => this.CONSUME(AdditionOperator, { LABEL: 'ops' }))
     this.OR([
       { ALT: () => this.SUBRULE(this.parenExpression) },
-      { ALT: () => this.SUBRULE(this.functionExpression) },
+      { ALT: () => this.SUBRULE(this.funcExpression) },
       { ALT: () => this.CONSUME(CellName) },
       { ALT: () => this.CONSUME(NumberLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
@@ -275,15 +275,11 @@ class Parser extends CstParser {
     this.CONSUME(RParen)
   })
 
-  private functionExpression = this.RULE('functionExpression', () => {
-    // @todo Add different (specific) functions.
-    this.CONSUME(FormulaName, { LABEL: 'fn' })
+  private funcExpression = this.RULE('funcExpression', () => {
+    this.CONSUME(FuncName, { LABEL: 'fn' })
     this.CONSUME(LParen)
     this.MANY_SEP({
-      DEF: () => {
-        // @todo Support different arguments.
-        this.SUBRULE(this.calcExpression, { LABEL: 'args' })
-      },
+      DEF: () => this.SUBRULE(this.calcExpression, { LABEL: 'args' }),
       SEP: Comma,
     })
     this.CONSUME(RParen)
