@@ -60,6 +60,14 @@ describe('parse & resolve', () => {
       ['TRUEfoo', 'TRUEfoo'],
       ['0', 0],
       ['42', 42],
+      ['0.123', 0.123],
+      ['0000.5', 0.5],
+      ['.75', 0.75],
+      ['-.101', -0.101],
+      ['100.', 100],
+      ['.', '.'],
+      ['1.0.0', '1.0.0'],
+      ['1..0', '1..0'],
       ['prefix8', 'prefix8'],
       ['16suffix', '16suffix'],
       ['12.34', 12.34],
@@ -82,13 +90,17 @@ describe('parse & resolve', () => {
     ])('resolves %j => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
-    it.todo('floats without leading zero')
   })
 
   describe('formula', () => {
     it.each([
       ['=0', 0],
       ['=123', 123],
+      ['=0.1', 0.1],
+      ['=000.101', 0.101],
+      ['=.5', 0.5],
+      ['=4.', 4],
+      ['=-8', -8],
       ['=""', ''],
       ['="foo"', 'foo'],
       ['="fizz buzz"', 'fizz buzz'],
@@ -98,7 +110,6 @@ describe('parse & resolve', () => {
     ])('resolves %j => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
-    it.todo('floats without leading zero')
 
     it.each([
       ['=A1', ''],
