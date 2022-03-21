@@ -21,6 +21,7 @@ const precisionRound = (num: number, places: number): number => {
   const pow = 10 ** places
   return Math.round(num * pow) / pow
 }
+const roundTowardsZero = (num: number): number => num | 0
 // Deal with float-point
 // @see https://floating-point-gui.de/
 const truncateFloatImprecision = (num: number): number =>
@@ -53,8 +54,10 @@ export const Round = makeFunc({
   optArgs: ['places'] as const,
   resolve: (visit, args) => {
     const value = resolveCalcNum(visit(args.value))
-    const places = args.places ? resolveCalcNum(visit(args.places)) : 0
-    return precisionRound(value, places)
+    const places = args.places
+      ? roundTowardsZero(resolveCalcNum(visit(args.places)))
+      : 0
+    return truncateFloatImprecision(precisionRound(value, places))
   },
 })
 
