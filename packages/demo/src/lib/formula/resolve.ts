@@ -49,6 +49,8 @@ export const FuncNameErr = new CellError('NAME', 'Unknown function')
 export const FuncArgsErr = new CellError('N/A', 'Wrong number of arguments')
 
 type Operation = (a: CellValue, b: CellValue) => CellValue
+type OperationDec = (opFn: Operation) => Operation
+type HOOperation = (a: Operation, b: Operation) => Operation
 
 export const resolveCalcNum = (val: CellValue): number => {
   const newVal =
@@ -68,15 +70,13 @@ const resolveCalcArgs = (a: CellValue, b: CellValue): [number, number] => {
   if (b instanceof Error) throw b
   return [resolveCalcNum(a), resolveCalcNum(b)]
 }
-const makeOp =
-  (opFn: Operation): Operation =>
-  (a, b) => {
-    try {
-      return opFn(a, b)
-    } catch (err) {
-      return err instanceof CellError ? err : RuntimeErr
-    }
+const makeOp: OperationDec = (opFn) => (a, b) => {
+  try {
+    return opFn(a, b)
+  } catch (err) {
+    return err instanceof CellError ? err : RuntimeErr
   }
+}
 
 const calcPow = makeOp((a, b) => {
   ;[a, b] = resolveCalcArgs(a, b)
@@ -102,7 +102,7 @@ const calcSubtract = makeOp((a, b) => {
   return a - b
 })
 
-const makeComparison = (opFn: Operation): Operation =>
+const makeComparison: OperationDec = (opFn) =>
   makeOp((a, b) => {
     if (a instanceof Error) throw a
     if (b instanceof Error) throw b
@@ -110,12 +110,18 @@ const makeComparison = (opFn: Operation): Operation =>
     if (typeof b === 'string') b = b.toLowerCase()
     return opFn(a, b)
   })
-const compareLessThan = makeComparison((a, b) => a < b)
-const compareLessOrEqual = makeComparison((a, b) => a <= b)
-const compareGreaterThan = makeComparison((a, b) => a > b)
-const compareGreaterOrEqual = makeComparison((a, b) => a >= b)
-const compareEquals = makeComparison((a, b) => a === b)
-const compareNotEquals = makeComparison((a, b) => !compareEquals(a, b))
+const _compareLessThan: Operation = (a, b) => a < b
+const _compareEquals: Operation = (a, b) => a === b
+const _compareEither: HOOperation = (opFnA, opFnB) => (a, b) =>
+  opFnA(a, b) || opFnB(a, b)
+const _notOp: OperationDec = (opFn) => (a, b) => !opFn(a, b)
+const _compareLessOrEqual = _compareEither(_compareLessThan, _compareEquals)
+const compareLessThan = makeComparison(_compareLessThan)
+const compareLessOrEqual = makeComparison(_compareLessOrEqual)
+const compareGreaterThan = makeComparison(_notOp(_compareLessOrEqual))
+const compareGreaterOrEqual = makeComparison(_notOp(_compareLessThan))
+const compareEquals = makeComparison(_compareEquals)
+const compareNotEquals = makeComparison(_notOp(_compareEquals))
 
 const resolveNumberLiteral = (token: IToken | undefined): number => {
   const image = token?.image ?? ''
