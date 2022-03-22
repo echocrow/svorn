@@ -102,12 +102,20 @@ const calcSubtract = makeOp((a, b) => {
   return a - b
 })
 
-const compareLessThan = makeOp((a, b) => a < b)
-const compareLessOrEqual = makeOp((a, b) => a <= b)
-const compareGreaterThan = makeOp((a, b) => a > b)
-const compareGreaterOrEqual = makeOp((a, b) => a >= b)
-const compareEquals = makeOp((a, b) => a === b)
-const compareNotEquals = makeOp((a, b) => !compareEquals(a, b))
+const makeComparison = (opFn: Operation): Operation =>
+  makeOp((a, b) => {
+    if (a instanceof Error) throw a
+    if (b instanceof Error) throw b
+    if (typeof a === 'string') a = a.toLowerCase()
+    if (typeof b === 'string') b = b.toLowerCase()
+    return opFn(a, b)
+  })
+const compareLessThan = makeComparison((a, b) => a < b)
+const compareLessOrEqual = makeComparison((a, b) => a <= b)
+const compareGreaterThan = makeComparison((a, b) => a > b)
+const compareGreaterOrEqual = makeComparison((a, b) => a >= b)
+const compareEquals = makeComparison((a, b) => a === b)
+const compareNotEquals = makeComparison((a, b) => !compareEquals(a, b))
 
 const resolveNumberLiteral = (token: IToken | undefined): number => {
   const image = token?.image ?? ''

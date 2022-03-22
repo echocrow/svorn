@@ -158,17 +158,21 @@ describe('parse & resolve', () => {
     it.each([
       ['=4<5', true],
       ['=10<1', false],
+      ['=TRUE<TRUE', false],
 
       ['=1<=1', true],
       ['=-1<=1', true],
       ['=1<=-1', false],
+      ['=TRUE<=TRUE', true],
 
       ['=5>4', true],
       ['=1>10', false],
+      ['=TRUE>TRUE', false],
 
       ['=1>=1', true],
       ['=1>=-1', true],
       ['=-1>=1', false],
+      ['=TRUE>=TRUE', true],
 
       ['=123=123', true],
       ['=123=124', false],
@@ -176,6 +180,8 @@ describe('parse & resolve', () => {
       ['=0=0', true],
       ['=""=0', false],
       ['=0=""', false],
+      ['=TRUE=TRUE', true],
+      ['=TRUE=FALSE', false],
 
       ['=123!=123', false],
       ['=123!=124', true],
@@ -185,11 +191,32 @@ describe('parse & resolve', () => {
       ['=123<>124', true],
       ['=0<>0', false],
       ['=0<>""', true],
+      ['=TRUE!=TRUE', false],
+      ['=TRUE!=FALSE', true],
+
+      ['=4<5=TRUE<>FALSE', true],
+      ['=4<5<>FALSE=TRUE', true],
+
+      ['=FALSE<TRUE', true],
+      ['=TRUE<FALSE', false],
+      ['=0<TRUE', true],
+      ['=0<=TRUE', true],
+      ['="a"<"b"', true],
+      ['="a"<"a"', false],
+      ['="z"<"y"', false],
+      ['="A"<"b"', true],
+
+      ['="foo"="foo"', true],
+      ['="foo"="bar"', false],
+      ['="BAR"="bar"', true],
+      ['="fOoBaR"="fooBAR"', true],
+
+      ['=4<0/0', DivZeroErr],
+      ['="a"+1<=0', ValErr],
+      ['="a"+1="a"+1', ValErr],
     ])('resolves comparison operators %s => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
-    it.todo('chained comparisons')
-    it.todo('mixed-type comparisons')
     it.todo('empty value comparisons')
     it.each([
       ['=(1+2)*3', 9],
@@ -198,6 +225,10 @@ describe('parse & resolve', () => {
       ['=(10-4)/2', 3],
       ['=(2+4)**(4/2)', 36],
       ['=2**(2*(1+2)+1)', 128],
+
+      ['=(4<5)=(0<1)', true],
+      ['=(4<5)<>(0<1)', false],
+      ['=(4<5)<>(0>1)', true],
     ])('resolves brackets first %s => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
