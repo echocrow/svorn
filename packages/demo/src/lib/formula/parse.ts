@@ -97,7 +97,7 @@ const StringLiteral = createToken({
 })
 const NumberLiteral = createToken({
   name: 'NumberLiteral',
-  pattern: /(?:(?:\d+\.?\d*)|(?:\.\d+))(?:[eE][+-]?\d+)?/,
+  pattern: /(?:(?:\d+\.?\d*)|(?:\.\d+))(?:(?:[eE][+-]?\d+)|(?:%))?/,
 })
 const CellName = createToken({
   name: 'CellName',

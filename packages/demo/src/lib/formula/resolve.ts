@@ -109,8 +109,11 @@ const compareGreaterOrEqual = makeOp((a, b) => a >= b)
 const compareEquals = makeOp((a, b) => a === b)
 const compareNotEquals = makeOp((a, b) => !compareEquals(a, b))
 
-const resolveNumberLiteral = (token: IToken | undefined): number =>
-  parseFloat(token?.image ?? '')
+const resolveNumberLiteral = (token: IToken | undefined): number => {
+  const image = token?.image ?? ''
+  const factor = image.slice(-1) === '%' ? 0.01 : 1
+  return parseFloat(image) * factor
+}
 
 const resolveBoolean = (token: IToken | undefined): boolean =>
   token ? tokenMatcher(token, True) : false

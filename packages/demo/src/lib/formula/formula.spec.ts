@@ -73,6 +73,10 @@ describe('parse & resolve', () => {
       ['12.34', 12.34],
       ['-12.34', -12.34],
       ['-3e2', -300],
+      ['9000%', 90],
+      ['01%', 0.01],
+      ['-.1%', -0.001],
+      ['10%%', '10%%'],
       ['+1', 1],
       ['--3', 3],
       ['--++3', 3],
@@ -90,7 +94,6 @@ describe('parse & resolve', () => {
     ])('resolves %j => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
-    it.todo('percentage numbers')
   })
 
   describe('formula', () => {
@@ -102,6 +105,7 @@ describe('parse & resolve', () => {
       ['=.5', 0.5],
       ['=4.', 4],
       ['=-8', -8],
+      ['=50%', 0.5],
       ['=""', ''],
       ['="foo"', 'foo'],
       ['="fizz buzz"', 'fizz buzz'],
@@ -145,7 +149,6 @@ describe('parse & resolve', () => {
     ])('resolves math operators in correct order %s => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
-    it.todo('modulo op')
     it.each([
       ['=4<5', true],
       ['=10<1', false],
