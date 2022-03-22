@@ -110,8 +110,9 @@ const makeComparison: OperationDec = (opFn) =>
     if (typeof b === 'string') b = b.toLowerCase()
     return opFn(a, b)
   })
-const _compareLessThan: Operation = (a, b) => a < b
-const _compareEquals: Operation = (a, b) => a === b
+const _compareLessThan: Operation = (a, b) => (a ?? 0) < (b ?? 0)
+const _compareEquals: Operation = (a, b) =>
+  a === b || (a === null && !b) || (!a && b === null)
 const _compareEither: HOOperation = (opFnA, opFnB) => (a, b) =>
   opFnA(a, b) || opFnB(a, b)
 const _notOp: OperationDec = (opFn) => (a, b) => !opFn(a, b)
@@ -256,7 +257,7 @@ class Interpreter extends BaseCstVisitor {
 
     if (ctx.CellName) {
       const cellName = ctx.CellName?.[0]?.image ?? ''
-      return this.#cellValues[cellName] ?? ''
+      return this.#cellValues[cellName] ?? null
     }
 
     if (ctx.NumberLiteral) return resolveNumberLiteral(ctx.NumberLiteral[0])

@@ -15,7 +15,7 @@ export class CellError extends Error {
   }
 }
 
-export type CellValue = string | number | boolean | CellError
+export type CellValue = string | number | boolean | null | CellError
 export type CellValues = Record<string, CellValue>
 
 const nameColRec = (col: number, acc = ''): string => {

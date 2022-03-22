@@ -217,7 +217,55 @@ describe('parse & resolve', () => {
     ])('resolves comparison operators %s => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
-    it.todo('empty value comparisons')
+    it.each([
+      ['=Y1=Z1', true],
+      ['=Y1<Z1', false],
+      ['=Y1>Z1', false],
+      ['=Y1<=Z1', true],
+      ['=Y1>=Z1', true],
+      ['=Y1!=Z1', false],
+
+      ['=Z1=0', true],
+      ['=Z1<0', false],
+      ['=Z1>0', false],
+      ['=Z1<=0', true],
+      ['=Z1>=0', true],
+      ['=Z1!=0', false],
+
+      ['=0=Z1', true],
+      ['=0<Z1', false],
+      ['=0>Z1', false],
+      ['=0<=Z1', true],
+      ['=0>=Z1', true],
+      ['=0!=Z1', false],
+
+      ['=Z1=""', true],
+      ['=Z1<""', false],
+      ['=Z1>""', false],
+      ['=Z1<=""', true],
+      ['=Z1>=""', true],
+      ['=Z1!=""', false],
+
+      ['=Z1=FALSE', true],
+      ['=Z1=TRUE', false],
+      ['=Z1="0"', false],
+
+      ['=Z1=1', false],
+      ['=Z1<1', true],
+      ['=Z1>1', false],
+      ['=Z1<=1', true],
+      ['=Z1>=1', false],
+      ['=Z1!=1', true],
+
+      ['=Z1=-1', false],
+      ['=Z1<-1', false],
+      ['=Z1>-1', true],
+      ['=Z1<=-1', false],
+      ['=Z1>=-1', true],
+      ['=Z1!=-1', true],
+    ])('resolves empty cell comparisons %s => %j', (input, want) =>
+      expectParseResolve(input).toBe(want),
+    )
     it.each([
       ['=(1+2)*3', 9],
       ['=10-(1-2)', 11],
