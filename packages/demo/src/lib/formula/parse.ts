@@ -109,13 +109,13 @@ const Boolean = createToken({
 })
 export const True = createToken({
   name: 'TRUE',
-  pattern: 'TRUE',
+  pattern: /TRUE/i,
   categories: Boolean,
   longer_alt: FuncName,
 })
 export const False = createToken({
   name: 'FALSE',
-  pattern: 'FALSE',
+  pattern: /FALSE/i,
   categories: Boolean,
   longer_alt: FuncName,
 })

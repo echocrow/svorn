@@ -9,8 +9,6 @@ import resolve, {
   ValErr,
 } from './resolve'
 
-const expectEmptyArray = (val: unknown) => expect(val).toEqual([])
-
 const expectParseResolve = (input: string, values: CellValues = {}) => {
   const parsed = parse(input)
   const resolved = resolve(parsed, values)
@@ -56,7 +54,11 @@ describe('parse & resolve', () => {
       ['some space', 'some space'],
       ['a\nb\nc', 'a\nb\nc'],
       ['TRUE', true],
+      ['true', true],
+      ['tRuE', true],
       ['FALSE', false],
+      ['false', false],
+      ['fAlsE', false],
       ['TRUEfoo', 'TRUEfoo'],
       ['0', 0],
       ['42', 42],
@@ -111,7 +113,11 @@ describe('parse & resolve', () => {
       ['="fizz buzz"', 'fizz buzz'],
       ['="multi\nline"', 'multi\nline'],
       ['=TRUE', true],
+      ['=true', true],
+      ['=True', true],
       ['=FALSE', false],
+      ['=false', false],
+      ['=False', false],
     ])('resolves %j => %j', (input, want) =>
       expectParseResolve(input).toBe(want),
     )
