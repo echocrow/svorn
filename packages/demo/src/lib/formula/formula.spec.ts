@@ -2,10 +2,12 @@ import parse from './parse'
 import resolve from './resolve'
 import {
   type CellValues,
+  CircularDepErr,
   DivZeroErr,
   FuncArgsErr,
   FuncNameErr,
   ParseErr,
+  RuntimeErr,
   ValErr,
 } from './values'
 
@@ -418,6 +420,16 @@ describe('parse & resolve', () => {
     ])('returns ParseErr on invalid input %s => %j', (input) =>
       expectParseResolve(input).toBe(ParseErr),
     )
+
+    it.each([
+      [ValErr, '#VALUE!'],
+      [DivZeroErr, '#DIV/0!'],
+      [RuntimeErr, '#ERROR!'],
+      [ParseErr, '#ERROR!'],
+      [FuncNameErr, '#NAME?'],
+      [FuncArgsErr, '#N/A'],
+      [CircularDepErr, '#REF!'],
+    ])('formats error %s => %j', (err, msg) => expect(`${err}`).toBe(msg))
 
     describe('functions', () => {
       it.each(['=AAAAAAAA()', '=AAAAAAAA(1, 2, 3)'])(
