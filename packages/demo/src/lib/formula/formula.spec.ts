@@ -156,6 +156,19 @@ describe('parse & resolve', () => {
       expectParseResolve(input).toBe(want),
     )
     it.each([
+      ['=Z1+2', 2],
+      ['=4+Z1', 4],
+      ['=Y1+Z1', 0],
+      ['=Z1*123', 0],
+      ['=7/Z1', DivZeroErr],
+      ['=Z1/7', 0],
+      ['=Z1**4', 0],
+      ['=4**Z1', 1],
+      ['=Y1**Z1', 1],
+    ])('resolves empty cell operations %s => %j', (input, want) =>
+      expectParseResolve(input).toBe(want),
+    )
+    it.each([
       ['=4<5', true],
       ['=10<1', false],
       ['=TRUE<TRUE', false],

@@ -58,8 +58,8 @@ type HOOperation<V extends CellValue = CellValue> = (
 export const resolveNum = (val: CellValue): number | CellError => {
   if (val instanceof Error) return val
   const newVal =
-    typeof val === 'number'
-      ? val
+    typeof val === 'number' || val === null
+      ? val ?? 0
       : typeof val === 'string'
       ? val || 0
       : typeof val === 'boolean'
