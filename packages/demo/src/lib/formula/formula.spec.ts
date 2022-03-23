@@ -421,8 +421,8 @@ describe('parse & resolve', () => {
     )
 
     describe('functions', () => {
-      it.each(['=UNKNOWNFN()', '=IFOOBAR(1, 2, 3)'])(
-        'returns error when function does not exists %s',
+      it.each(['=AAAAAAAA()', '=AAAAAAAA(1, 2, 3)'])(
+        'returns error when function does not exist %s',
         (input) => expectParseResolve(input).toBe(FuncNameErr),
       )
 
@@ -446,7 +446,7 @@ describe('parse & resolve', () => {
 
           ['=IF("bar"+2, 3, 4)', ValErr],
           ['=IF(0/0, 3, 4)', DivZeroErr],
-          ['=IF(INVALIDFN(), 3, 4)', FuncNameErr],
+          ['=IF(AAAAAAAA(), 3, 4)', FuncNameErr],
           ['=IF(TRUE, 3, 0/0)', 3],
           ['=IF(FALSE, 0/0, 3)', 3],
           ['=IF(TRUE, 0/0, 3)', DivZeroErr],
@@ -492,7 +492,7 @@ describe('parse & resolve', () => {
           ['=FLOOR(0/0, "txt")', DivZeroErr],
           ['=FLOOR(4, 0/0)', DivZeroErr],
           ['=FLOOR("txt", 0/0)', DivZeroErr],
-          ['=FLOOR(INVALIDFN())', FuncNameErr],
+          ['=FLOOR(AAAAAAAA())', FuncNameErr],
 
           ['=FLOOR()', FuncArgsErr],
           ['=FLOOR(1, 2, 3)', FuncArgsErr],
@@ -530,7 +530,7 @@ describe('parse & resolve', () => {
           ['=CEILING(0/0, "txt")', DivZeroErr],
           ['=CEILING(4, 0/0)', DivZeroErr],
           ['=CEILING("txt", 0/0)', DivZeroErr],
-          ['=CEILING(INVALIDFN())', FuncNameErr],
+          ['=CEILING(AAAAAAAA())', FuncNameErr],
 
           ['=CEILING()', FuncArgsErr],
           ['=CEILING(1, 2, 3)', FuncArgsErr],
@@ -578,7 +578,7 @@ describe('parse & resolve', () => {
           ['=ROUND(0/0, "txt")', DivZeroErr],
           ['=ROUND(4, 0/0)', DivZeroErr],
           ['=ROUND("txt", 0/0)', DivZeroErr],
-          ['=ROUND(INVALIDFN())', FuncNameErr],
+          ['=ROUND(AAAAAAAA())', FuncNameErr],
 
           ['=ROUND()', FuncArgsErr],
           ['=ROUND(1, 2, 3)', FuncArgsErr],
