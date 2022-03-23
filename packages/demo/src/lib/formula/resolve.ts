@@ -5,7 +5,7 @@ import {
   tokenMatcher,
 } from 'chevrotain'
 
-import { type CellValue, type CellValues, CellError } from '#lib/cells'
+import type { CellValue, CellValues } from '#lib/cells'
 import { IS_DEV_ENV } from '#lib/utils'
 
 import type {
@@ -21,6 +21,13 @@ import type {
   PlainCstChildren,
   TextCstChildren,
 } from './cst.gen'
+import {
+  DivZeroErr,
+  FuncArgsErr,
+  FuncNameErr,
+  ParseErr,
+  RuntimeErr,
+} from './errors'
 import funcs from './functions'
 import {
   type ParseResult,
@@ -38,45 +45,13 @@ import {
   Pow,
   True,
 } from './parse'
+import {
+  type HOOperation,
+  type Operation,
+  type OperationDecor,
+  makeCalcOp,
+} from './resolveUtils'
 
-export const ValErr = new CellError('VALUE', 'Value not supported')
-export const DivZeroErr = new CellError('DIV/0', 'Cannot divide by zero')
-export const RuntimeErr = new CellError('ERROR', 'Unexpected runtime error')
-export const ParseErr = new CellError('ERROR', 'Invalid input')
-export const FuncNameErr = new CellError('NAME', 'Unknown function')
-export const FuncArgsErr = new CellError('N/A', 'Wrong number of arguments')
-
-type Operation<V extends CellValue = CellValue> = (a: V, b: V) => CellValue
-type OperationDec<V extends CellValue = CellValue> = (
-  opFn: Operation<V>,
-) => Operation
-type HOOperation<V extends CellValue = CellValue> = (
-  a: Operation<V>,
-  b: Operation<V>,
-) => Operation
-
-export const resolveNum = (val: CellValue): number | CellError => {
-  if (val instanceof Error) return val
-  const newVal =
-    typeof val === 'number' || val === null
-      ? val ?? 0
-      : typeof val === 'string'
-      ? val || 0
-      : typeof val === 'boolean'
-      ? Number(val)
-      : val
-  return typeof newVal === 'number' && !isNaN(newVal) ? newVal : ValErr
-}
-
-const makeCalcOp: OperationDec<number> = (opFn) => (a, b) => {
-  if (a instanceof Error) return a
-  if (b instanceof Error) return b
-  a = resolveNum(a)
-  b = resolveNum(b)
-  if (a instanceof Error) return a
-  if (b instanceof Error) return b
-  return opFn(a, b)
-}
 const calcPow = makeCalcOp((a, b) => a ** b)
 const calcMultiply = makeCalcOp((a, b) => a * b)
 const calcDivide = makeCalcOp((a, b) => (b == 0 ? DivZeroErr : a / b))
@@ -85,7 +60,7 @@ const calcAdd: Operation = (a, b) =>
   typeof a === 'string' && typeof b === 'string' ? a + b : _calcNumAdd(a, b)
 const calcSubtract = makeCalcOp((a, b) => a - b)
 
-const makeComparison: OperationDec = (opFn) => (a, b) => {
+const makeComparison: OperationDecor = (opFn) => (a, b) => {
   if (a instanceof Error) return a
   if (b instanceof Error) return b
   if (typeof a === 'string') a = a.toLowerCase()
@@ -97,7 +72,7 @@ const _compareEquals: Operation = (a, b) =>
   a === b || (a === null && !b) || (!a && b === null)
 const _compareEither: HOOperation = (opFnA, opFnB) => (a, b) =>
   opFnA(a, b) || opFnB(a, b)
-const _notOp: OperationDec = (opFn) => (a, b) => !opFn(a, b)
+const _notOp: OperationDecor = (opFn) => (a, b) => !opFn(a, b)
 const _compareLessOrEqual = _compareEither(_compareLessThan, _compareEquals)
 const compareLessThan = makeComparison(_compareLessThan)
 const compareLessOrEqual = makeComparison(_compareLessOrEqual)
@@ -276,12 +251,7 @@ class Interpreter extends parser.getBaseCstVisitorConstructor() {
     }, {} as Record<string, CstNode | undefined>)
     const restArgs = args.slice(func.argNames.length)
 
-    try {
-      return func.resolve(visit, namedArgs, restArgs)
-    } catch (err) {
-      if (!(err instanceof CellError)) throw err
-      return err
-    }
+    return func.resolve(visit, namedArgs, restArgs)
   }
 }
 

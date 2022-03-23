@@ -1,13 +1,14 @@
 import type { CellValues } from '#lib/cells'
 
-import parse from './parse'
-import resolve, {
+import {
   DivZeroErr,
   FuncArgsErr,
   FuncNameErr,
   ParseErr,
   ValErr,
-} from './resolve'
+} from './errors'
+import parse from './parse'
+import resolve from './resolve'
 
 const expectParseResolve = (input: string, values: CellValues = {}) => {
   const parsed = parse(input)
@@ -446,6 +447,10 @@ describe('parse & resolve', () => {
           ['=IF("bar"+2, 3, 4)', ValErr],
           ['=IF(0/0, 3, 4)', DivZeroErr],
           ['=IF(INVALIDFN(), 3, 4)', FuncNameErr],
+          ['=IF(TRUE, 3, 0/0)', 3],
+          ['=IF(FALSE, 0/0, 3)', 3],
+          ['=IF(TRUE, 0/0, 3)', DivZeroErr],
+          ['=IF(FALSE, 3, 0/0)', DivZeroErr],
 
           ['=IF()', FuncArgsErr],
           ['=IF(1, 2, 3, 4)', FuncArgsErr],
@@ -480,7 +485,13 @@ describe('parse & resolve', () => {
           ['=FLOOR(TRUE)', 1],
 
           ['=FLOOR("txt")', ValErr],
+          ['=FLOOR("txt", 2)', ValErr],
+          ['=FLOOR(2, "txt")', ValErr],
           ['=FLOOR(0/0)', DivZeroErr],
+          ['=FLOOR(0/0, 4)', DivZeroErr],
+          ['=FLOOR(0/0, "txt")', DivZeroErr],
+          ['=FLOOR(4, 0/0)', DivZeroErr],
+          ['=FLOOR("txt", 0/0)', DivZeroErr],
           ['=FLOOR(INVALIDFN())', FuncNameErr],
 
           ['=FLOOR()', FuncArgsErr],
@@ -512,7 +523,13 @@ describe('parse & resolve', () => {
           ['=CEILING(TRUE)', 1],
 
           ['=CEILING("txt")', ValErr],
+          ['=CEILING("txt", 2)', ValErr],
+          ['=CEILING(2, "txt")', ValErr],
           ['=CEILING(0/0)', DivZeroErr],
+          ['=CEILING(0/0, 4)', DivZeroErr],
+          ['=CEILING(0/0, "txt")', DivZeroErr],
+          ['=CEILING(4, 0/0)', DivZeroErr],
+          ['=CEILING("txt", 0/0)', DivZeroErr],
           ['=CEILING(INVALIDFN())', FuncNameErr],
 
           ['=CEILING()', FuncArgsErr],
@@ -540,6 +557,9 @@ describe('parse & resolve', () => {
           ['=ROUND(1.23456, 3)', 1.235],
           ['=ROUND(11.4999, 2)', 11.5],
 
+          ['=ROUND(Z1, 2)', 0],
+          ['=ROUND(12.34, Z1)', 12],
+
           ['=ROUND(123456, -2)', 123500],
           ['=ROUND(123456, -2.1)', 123500],
           ['=ROUND(123456, -2.99)', 123500],
@@ -551,7 +571,13 @@ describe('parse & resolve', () => {
           ['=ROUND(TRUE)', 1],
 
           ['=ROUND("txt")', ValErr],
+          ['=ROUND("txt", 2)', ValErr],
+          ['=ROUND(2, "txt")', ValErr],
           ['=ROUND(0/0)', DivZeroErr],
+          ['=ROUND(0/0, 4)', DivZeroErr],
+          ['=ROUND(0/0, "txt")', DivZeroErr],
+          ['=ROUND(4, 0/0)', DivZeroErr],
+          ['=ROUND("txt", 0/0)', DivZeroErr],
           ['=ROUND(INVALIDFN())', FuncNameErr],
 
           ['=ROUND()', FuncArgsErr],

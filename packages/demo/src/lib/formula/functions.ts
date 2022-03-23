@@ -1,14 +1,5 @@
-import type { CellValue } from '#lib/cells'
-
 import { type AnyFunc, makeFunc } from './function'
-import { resolveNum } from './resolve'
-
-const requireNum = (val: CellValue): number => {
-  if (val instanceof Error) throw val
-  const num = resolveNum(val)
-  if (num instanceof Error) throw num
-  return num
-}
+import { makeCalcOp } from './resolveUtils'
 
 export const If = makeFunc({
   name: 'IF',
@@ -26,48 +17,42 @@ export const If = makeFunc({
   },
 })
 
-const precisionRound = (num: number, places: number): number => {
+const floatRound = (num: number, places: number): number => {
   const pow = 10 ** places
   return Math.round(num * pow) / pow
 }
-const roundTowardsZero = (num: number): number => num | 0
+const roundToZero = (num: number): number => num | 0
 // Deal with floating-point precision issue.
 // @see https://floating-point-gui.de/
-const truncateFloatImprecision = (num: number): number =>
-  precisionRound(num, 10)
+const truncateFloatImprecision = (num: number): number => floatRound(num, 10)
+const makeFloatOp: typeof makeCalcOp = (calcOp) =>
+  makeCalcOp((a, b) => {
+    const res = calcOp(a, b)
+    return res instanceof Error ? res : truncateFloatImprecision(res)
+  })
+const _floor = makeFloatOp((val, fac) => Math.floor(val / fac) * fac)
 export const Floor = makeFunc({
   name: 'FLOOR',
   args: ['value'] as const,
   optArgs: ['factor'] as const,
-  resolve: (visit, args) => {
-    const value = requireNum(visit(args.value))
-    const factor = args.factor ? requireNum(visit(args.factor)) : 1
-    const res = Math.floor(value / factor) * factor
-    return truncateFloatImprecision(res)
-  },
+  resolve: (visit, args) =>
+    _floor(visit(args.value), args.factor ? visit(args.factor) : 1),
 })
+const _ceil = makeFloatOp((val, fac) => Math.ceil(val / fac) * fac)
 export const Ceiling = makeFunc({
   name: 'CEILING',
   args: ['value'] as const,
   optArgs: ['factor'] as const,
-  resolve: (visit, args) => {
-    const value = requireNum(visit(args.value))
-    const factor = args.factor ? requireNum(visit(args.factor)) : 1
-    const res = Math.ceil(value / factor) * factor
-    return truncateFloatImprecision(res)
-  },
+  resolve: (visit, args) =>
+    _ceil(visit(args.value), args.factor ? visit(args.factor) : 1),
 })
+const _round = makeFloatOp((val, p) => floatRound(val, roundToZero(p)))
 export const Round = makeFunc({
   name: 'ROUND',
   args: ['value'] as const,
   optArgs: ['places'] as const,
-  resolve: (visit, args) => {
-    const value = requireNum(visit(args.value))
-    const places = args.places
-      ? roundTowardsZero(requireNum(visit(args.places)))
-      : 0
-    return truncateFloatImprecision(precisionRound(value, places))
-  },
+  resolve: (visit, args) =>
+    _round(visit(args.value), args.places ? visit(args.places) : 0),
 })
 
 /** @todo: Add more functions. */
