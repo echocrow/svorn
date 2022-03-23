@@ -3,8 +3,8 @@ import { makeCalcOp } from './resolveUtils'
 
 export const If = makeFunc({
   name: 'IF',
-  args: ['condition', 'then'] as const,
-  optArgs: ['else'] as const,
+  args: ['condition', 'then'],
+  optArgs: ['else'],
   resolve: (visit, args) => {
     const cond = visit(args.condition)
     return cond instanceof Error
@@ -33,24 +33,24 @@ const makeFloatOp: typeof makeCalcOp = (calcOp) =>
 const _floor = makeFloatOp((val, fac) => Math.floor(val / fac) * fac)
 export const Floor = makeFunc({
   name: 'FLOOR',
-  args: ['value'] as const,
-  optArgs: ['factor'] as const,
+  args: ['value'],
+  optArgs: ['factor'],
   resolve: (visit, args) =>
     _floor(visit(args.value), args.factor ? visit(args.factor) : 1),
 })
 const _ceil = makeFloatOp((val, fac) => Math.ceil(val / fac) * fac)
 export const Ceiling = makeFunc({
   name: 'CEILING',
-  args: ['value'] as const,
-  optArgs: ['factor'] as const,
+  args: ['value'],
+  optArgs: ['factor'],
   resolve: (visit, args) =>
     _ceil(visit(args.value), args.factor ? visit(args.factor) : 1),
 })
 const _round = makeFloatOp((val, p) => floatRound(val, roundToZero(p)))
 export const Round = makeFunc({
   name: 'ROUND',
-  args: ['value'] as const,
-  optArgs: ['places'] as const,
+  args: ['value'],
+  optArgs: ['places'],
   resolve: (visit, args) =>
     _round(visit(args.value), args.places ? visit(args.places) : 0),
 })

@@ -7,14 +7,14 @@ type ArgNames = ReadonlyArray<string>
 type VisitFn = ICstVisitor<never, CellValue>['visit']
 
 export interface Func<A extends ArgNames, O extends ArgNames> {
-  name: string
-  minArgs: number
-  maxArgs: number
-  argNames: string[]
-  resolve: (
+  readonly name: string
+  readonly minArgs: number
+  readonly maxArgs: number
+  readonly argNames: ReadonlyArray<string>
+  readonly resolve: (
     visit: VisitFn,
     args: ResolveAllArgs<A, O> | Record<string, CstNode | undefined>,
-    restArgs: CstNode[],
+    restArgs: ReadonlyArray<CstNode>,
   ) => CellValue
 }
 
@@ -31,8 +31,8 @@ type ResolveAllArgs<A extends ArgNames, O extends ArgNames> = ResolveArgs<A> &
 
 interface MakeFuncOptions<A extends ArgNames, O extends ArgNames> {
   name: string
-  args: A
-  optArgs?: O
+  args: Readonly<A & ArgNames>
+  optArgs?: Readonly<O & ArgNames>
   restArgs?: boolean
   resolve: (
     visit: VisitFn,
