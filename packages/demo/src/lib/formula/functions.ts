@@ -1,7 +1,8 @@
 import { type AnyFunc, makeFunc } from './function'
-import { makeCalcOp } from './resolveUtils'
+import { makeCalcOp, makeMapper, makeNumMapper } from './resolveUtils'
+import { DivZeroErr } from './values'
 
-export const If = makeFunc({
+const If = makeFunc({
   name: 'IF',
   args: ['condition', 'then'],
   optArgs: ['else'],
@@ -15,6 +16,20 @@ export const If = makeFunc({
       ? visit(args.else)
       : ''
   },
+})
+
+const _not = makeMapper((val) => !val)
+const Not = makeFunc({
+  name: 'NOT',
+  args: ['logical_expression'],
+  resolve: (visit, args) => _not(visit(args.logical_expression)),
+})
+
+const _abs = makeNumMapper(Math.abs)
+const Abs = makeFunc({
+  name: 'ABS',
+  args: ['value'],
+  resolve: (visit, args) => _abs(visit(args.value)),
 })
 
 const floatRound = (num: number, places: number): number => {
@@ -31,7 +46,7 @@ const makeFloatOp: typeof makeCalcOp = (calcOp) =>
     return res instanceof Error ? res : truncateFloatImprecision(res)
   })
 const _floor = makeFloatOp((val, fac) => Math.floor(val / fac) * fac)
-export const Floor = makeFunc({
+const Floor = makeFunc({
   name: 'FLOOR',
   args: ['value'],
   optArgs: ['factor'],
@@ -39,7 +54,7 @@ export const Floor = makeFunc({
     _floor(visit(args.value), args.factor ? visit(args.factor) : 1),
 })
 const _ceil = makeFloatOp((val, fac) => Math.ceil(val / fac) * fac)
-export const Ceiling = makeFunc({
+const Ceiling = makeFunc({
   name: 'CEILING',
   args: ['value'],
   optArgs: ['factor'],
@@ -47,7 +62,7 @@ export const Ceiling = makeFunc({
     _ceil(visit(args.value), args.factor ? visit(args.factor) : 1),
 })
 const _round = makeFloatOp((val, p) => floatRound(val, roundToZero(p)))
-export const Round = makeFunc({
+const Round = makeFunc({
   name: 'ROUND',
   args: ['value'],
   optArgs: ['places'],
@@ -55,9 +70,22 @@ export const Round = makeFunc({
     _round(visit(args.value), args.places ? visit(args.places) : 0),
 })
 
+const _mod = makeCalcOp((a, b) =>
+  !b
+    ? DivZeroErr
+    : !a
+    ? 0
+    : (a % b) + b * Number((a < 0 && b > 0) || (a > 0 && b < 0)),
+)
+const Mod = makeFunc({
+  name: 'MOD',
+  args: ['dividend', 'divisor'],
+  resolve: (visit, args) => _mod(visit(args.dividend), visit(args.divisor)),
+})
+
 /** @todo: Add more functions. */
 
-const funcsList = [If, Floor, Ceiling, Round]
+const funcsList = [If, Not, Abs, Floor, Ceiling, Round, Mod]
 
 const funcs = funcsList.reduce<Record<string, AnyFunc>>((funcs, f) => {
   funcs[f.name] = f

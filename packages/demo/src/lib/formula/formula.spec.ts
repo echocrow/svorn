@@ -193,6 +193,7 @@ describe('parse & resolve', () => {
       ['=123=124', false],
       ['=""=""', true],
       ['=0=0', true],
+      ['=0=-0', true],
       ['=""=0', false],
       ['=0=""', false],
       ['=TRUE=TRUE', true],
@@ -478,6 +479,61 @@ describe('parse & resolve', () => {
         )
       })
 
+      describe('not', () => {
+        it.each([
+          ['=NOT(0)', true],
+          ['=NOT(1)', false],
+          ['=NOT(-0)', true],
+
+          ['=NOT(TRUE)', false],
+          ['=NOT(FALSE)', true],
+
+          ['=NOT("")', true],
+          ['=NOT("foo")', false],
+
+          ['=NOT(Z9)', true],
+
+          ['=NOT(0/0)', DivZeroErr],
+
+          ['=NOT()', FuncArgsErr],
+          ['=NOT(1, 2)', FuncArgsErr],
+        ])('resolves %s => %j', (input, want) =>
+          expectParseResolve(input, {
+            B1: true,
+            B2: false,
+            C1: 1,
+            C2: 2,
+          }).toBe(want),
+        )
+      })
+
+      describe('abs', () => {
+        it.each([
+          ['=ABS(0)', 0],
+          ['=ABS(-0)', 0],
+          ['=ABS(1)', 1],
+          ['=ABS(-1)', 1],
+
+          ['=ABS(FALSE)', 0],
+          ['=ABS(TRUE)', 1],
+
+          ['=ABS("")', 0],
+          ['=ABS("foo")', ValErr],
+          ['=ABS(0/0)', DivZeroErr],
+          ['=ABS(Z9)', 0],
+
+          ['=ABS()', FuncArgsErr],
+          ['=ABS(1, 2)', FuncArgsErr],
+        ])('resolves %s => %j', (input, want) =>
+          expectParseResolve(input, {
+            B1: true,
+            B2: false,
+            C1: 1,
+            C2: 2,
+          }).toBe(want),
+        )
+      })
+
       describe('floor', () => {
         it.each([
           ['=FLOOR(4)', 4],
@@ -593,6 +649,36 @@ describe('parse & resolve', () => {
 
           ['=ROUND()', FuncArgsErr],
           ['=ROUND(1, 2, 3)', FuncArgsErr],
+        ])('resolves %s => %j', (input, want) =>
+          expectParseResolve(input, {
+            B1: true,
+            B2: false,
+            C1: 1,
+            C2: 2,
+          }).toBe(want),
+        )
+      })
+
+      describe('mod', () => {
+        it.each([
+          ['=MOD(1, 0)', DivZeroErr],
+          ['=MOD(1, 1)', 0],
+          ['=MOD(123, 7)', 4],
+
+          ['=MOD(0, 8)', 0],
+          ['=MOD(-0, 8)', 0],
+          ['=MOD(0, -8)', 0],
+          ['=MOD(-0, -8)', 0],
+
+          ['=MOD(-10, 3)', 2],
+          ['=MOD(23, -4)', -1],
+          ['=MOD(-40, -7)', -5],
+
+          ['=MOD(TRUE, 2)', 1],
+          ['=MOD(FALSE, 3)', 0],
+
+          ['=MOD()', FuncArgsErr],
+          ['=MOD(1, 2, 3)', FuncArgsErr],
         ])('resolves %s => %j', (input, want) =>
           expectParseResolve(input, {
             B1: true,

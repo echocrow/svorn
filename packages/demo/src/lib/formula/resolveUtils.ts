@@ -16,6 +16,11 @@ import {
 } from './parse'
 import { type CellValue, CellError, DivZeroErr, ValErr } from './values'
 
+export type Mapping<
+  I extends CellValue = CellValue,
+  O extends CellValue = CellValue,
+> = (val: I) => O
+
 export type Operation<
   I extends CellValue = CellValue,
   O extends CellValue = CellValue,
@@ -29,6 +34,9 @@ export type HOOperation<
   O extends CellValue = CellValue,
 > = (a: Operation<I>, b: Operation<I>) => Operation<O>
 
+export const makeMapper = (map: Mapping) => (val: CellValue) =>
+  val instanceof Error ? val : map(val)
+
 export const resolveNum = (val: CellValue): number | CellError => {
   if (val instanceof Error) return val
   const newVal =
@@ -40,6 +48,12 @@ export const resolveNum = (val: CellValue): number | CellError => {
       ? Number(val)
       : val
   return typeof newVal === 'number' && !isNaN(newVal) ? newVal : ValErr
+}
+
+export const makeNumMapper = (map: Mapping<number>) => (val: CellValue) => {
+  if (val instanceof Error) return val
+  val = resolveNum(val)
+  return val instanceof Error ? val : map(val)
 }
 
 export const makeCalcOp: OperationDecor<number, number | CellError> =
