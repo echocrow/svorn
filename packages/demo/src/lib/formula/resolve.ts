@@ -39,8 +39,6 @@ import {
   True,
 } from './parse'
 
-const BaseCstVisitor = parser.getBaseCstVisitorConstructor()
-
 export const ValErr = new CellError('VALUE', 'Value not supported')
 export const DivZeroErr = new CellError('DIV/0', 'Cannot divide by zero')
 export const RuntimeErr = new CellError('ERROR', 'Unexpected runtime error')
@@ -48,11 +46,17 @@ export const ParseErr = new CellError('ERROR', 'Invalid input')
 export const FuncNameErr = new CellError('NAME', 'Unknown function')
 export const FuncArgsErr = new CellError('N/A', 'Wrong number of arguments')
 
-type Operation = (a: CellValue, b: CellValue) => CellValue
-type OperationDec = (opFn: Operation) => Operation
-type HOOperation = (a: Operation, b: Operation) => Operation
+type Operation<V extends CellValue = CellValue> = (a: V, b: V) => CellValue
+type OperationDec<V extends CellValue = CellValue> = (
+  opFn: Operation<V>,
+) => Operation
+type HOOperation<V extends CellValue = CellValue> = (
+  a: Operation<V>,
+  b: Operation<V>,
+) => Operation
 
-export const resolveCalcNum = (val: CellValue): number => {
+export const resolveNum = (val: CellValue): number | CellError => {
+  if (val instanceof Error) return val
   const newVal =
     typeof val === 'number'
       ? val
@@ -61,55 +65,33 @@ export const resolveCalcNum = (val: CellValue): number => {
       : typeof val === 'boolean'
       ? Number(val)
       : val
-  if (typeof newVal !== 'number')
-    throw newVal instanceof CellError ? newVal : ValErr
-  return newVal
-}
-const resolveCalcArgs = (a: CellValue, b: CellValue): [number, number] => {
-  if (a instanceof Error) throw a
-  if (b instanceof Error) throw b
-  return [resolveCalcNum(a), resolveCalcNum(b)]
-}
-const makeOp: OperationDec = (opFn) => (a, b) => {
-  try {
-    return opFn(a, b)
-  } catch (err) {
-    return err instanceof CellError ? err : RuntimeErr
-  }
+  return typeof newVal === 'number' && !isNaN(newVal) ? newVal : ValErr
 }
 
-const calcPow = makeOp((a, b) => {
-  ;[a, b] = resolveCalcArgs(a, b)
-  return a ** b
-})
-const calcMultiply = makeOp((a, b) => {
-  if (typeof a === 'number' && typeof b === 'string') return calcMultiply(b, a)
-  ;[a, b] = resolveCalcArgs(a, b)
-  return a * b
-})
-const calcDivide = makeOp((a, b) => {
-  ;[a, b] = resolveCalcArgs(a, b)
-  if (b == 0) throw DivZeroErr
-  return a / b
-})
-const calcAdd = makeOp((a, b) => {
-  if (typeof a === 'string' && typeof b === 'string') return a + b
-  ;[a, b] = resolveCalcArgs(a, b)
-  return a + b
-})
-const calcSubtract = makeOp((a, b) => {
-  ;[a, b] = resolveCalcArgs(a, b)
-  return a - b
-})
+const makeCalcOp: OperationDec<number> = (opFn) => (a, b) => {
+  if (a instanceof Error) return a
+  if (b instanceof Error) return b
+  a = resolveNum(a)
+  b = resolveNum(b)
+  if (a instanceof Error) return a
+  if (b instanceof Error) return b
+  return opFn(a, b)
+}
+const calcPow = makeCalcOp((a, b) => a ** b)
+const calcMultiply = makeCalcOp((a, b) => a * b)
+const calcDivide = makeCalcOp((a, b) => (b == 0 ? DivZeroErr : a / b))
+const _calcNumAdd = makeCalcOp((a, b) => a + b)
+const calcAdd: Operation = (a, b) =>
+  typeof a === 'string' && typeof b === 'string' ? a + b : _calcNumAdd(a, b)
+const calcSubtract = makeCalcOp((a, b) => a - b)
 
-const makeComparison: OperationDec = (opFn) =>
-  makeOp((a, b) => {
-    if (a instanceof Error) throw a
-    if (b instanceof Error) throw b
-    if (typeof a === 'string') a = a.toLowerCase()
-    if (typeof b === 'string') b = b.toLowerCase()
-    return opFn(a, b)
-  })
+const makeComparison: OperationDec = (opFn) => (a, b) => {
+  if (a instanceof Error) return a
+  if (b instanceof Error) return b
+  if (typeof a === 'string') a = a.toLowerCase()
+  if (typeof b === 'string') b = b.toLowerCase()
+  return opFn(a, b)
+}
 const _compareLessThan: Operation = (a, b) => (a ?? 0) < (b ?? 0)
 const _compareEquals: Operation = (a, b) =>
   a === b || (a === null && !b) || (!a && b === null)
@@ -169,7 +151,7 @@ const opPhases: readonly [TokenType, Operation][][] = [
   ],
 ]
 
-class Interpreter extends BaseCstVisitor {
+class Interpreter extends parser.getBaseCstVisitorConstructor() {
   #cellValues: CellValues = {}
 
   constructor() {
@@ -297,12 +279,12 @@ class Interpreter extends BaseCstVisitor {
     try {
       return func.resolve(visit, namedArgs, restArgs)
     } catch (err) {
-      return err instanceof CellError ? err : RuntimeErr
+      if (!(err instanceof CellError)) throw err
+      return err
     }
   }
 }
 
-// We only need a single interpreter instance because our interpreter has no state.
 const interpreter = new Interpreter()
 
 const resolve = (
