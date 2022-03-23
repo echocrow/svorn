@@ -1,16 +1,14 @@
 import { combineLatest, Observable, of, switchMap } from 'rxjs'
 import { derived, derivedFamily, writable, writableFamily } from 'svorn'
 
-import {
-  type CellCoord,
-  type CellValue,
-  type CellValues,
-  CellError,
-  nameCell,
-  parseCellName,
-} from './cells'
+import { type CellCoord, nameCell, parseCellName } from './cells'
 import parse, { type ParseResult } from './formula/parse'
 import resolve from './formula/resolve'
+import {
+  type CellValue,
+  type CellValues,
+  CircularDepErr,
+} from './formula/values'
 import { clamp } from './utils'
 
 export const cells = writableFamily('')
@@ -55,8 +53,6 @@ export const parsedCells = derivedFamily((cell: string) => ({
   source: cells.get(cell),
   then: (txt) => parse(txt),
 }))
-
-const CircularDepErr = new CellError('LOOP', 'Circular dependency')
 
 export const resolvedCells = derivedFamily((cell: string) => ({
   source: parsedCells

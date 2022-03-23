@@ -1,6 +1,5 @@
 import { type CstNode, type IToken, tokenMatcher } from 'chevrotain'
 
-import type { CellValue, CellValues } from '#lib/cells'
 import { IS_DEV_ENV } from '#lib/utils'
 
 import type {
@@ -16,7 +15,6 @@ import type {
   PlainCstChildren,
   TextCstChildren,
 } from './cst.gen'
-import { FuncArgsErr, FuncNameErr, ParseErr, RuntimeErr } from './errors'
 import funcs from './functions'
 import { type ParseResult, parser } from './parse'
 import {
@@ -25,6 +23,14 @@ import {
   resolveBoolean,
   resolveNumberLiteral,
 } from './resolveUtils'
+import {
+  type CellValue,
+  type CellValues,
+  FuncArgsErr,
+  FuncNameErr,
+  ParseErr,
+  RuntimeErr,
+} from './values'
 
 class Interpreter extends parser.getBaseCstVisitorConstructor() {
   #cellValues: CellValues = {}

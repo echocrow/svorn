@@ -1,14 +1,13 @@
-import type { CellValues } from '#lib/cells'
-
+import parse from './parse'
+import resolve from './resolve'
 import {
+  type CellValues,
   DivZeroErr,
   FuncArgsErr,
   FuncNameErr,
   ParseErr,
   ValErr,
-} from './errors'
-import parse from './parse'
-import resolve from './resolve'
+} from './values'
 
 const expectParseResolve = (input: string, values: CellValues = {}) => {
   const parsed = parse(input)

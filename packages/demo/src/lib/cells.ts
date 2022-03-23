@@ -4,20 +4,6 @@ const azBase = zCharCode - aCharCode + 1
 
 export type CellCoord = readonly [col: number, row: number]
 
-export class CellError extends Error {
-  label: string
-  constructor(label: string, message: string) {
-    super(message)
-    this.label = label
-  }
-  toString(): string {
-    return `#${this.label}!`
-  }
-}
-
-export type CellValue = string | number | boolean | null | CellError
-export type CellValues = Record<string, CellValue>
-
 const nameColRec = (col: number, acc = ''): string => {
   if (col < 0) return acc
   const c = col % azBase

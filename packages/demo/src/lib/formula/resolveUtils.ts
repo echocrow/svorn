@@ -1,8 +1,5 @@
 import { type IToken, type TokenType, tokenMatcher } from 'chevrotain'
 
-import type { CellError, CellValue } from '#lib/cells'
-
-import { DivZeroErr, ValErr } from './errors'
 import {
   Div,
   Equals,
@@ -17,6 +14,7 @@ import {
   Pow,
   True,
 } from './parse'
+import { type CellValue, CellError, DivZeroErr, ValErr } from './values'
 
 export type Operation<
   I extends CellValue = CellValue,

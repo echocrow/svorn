@@ -1,6 +1,6 @@
 import type { CstNode, ICstVisitor } from 'chevrotain'
 
-import type { CellValue } from '#lib/cells'
+import type { CellValue } from './values'
 
 type ArgNames = ReadonlyArray<string>
 
