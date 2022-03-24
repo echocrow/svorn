@@ -1,0 +1,32 @@
+{
+  "name": "funcular",
+  "type": "module",
+  "version": "0.0.1",
+  "main": "src/index.ts",
+  "publishConfig": {
+    "source": "src/index.ts",
+    "exports": "./dist/svorn.js",
+    "main": "./dist/svorn.cjs",
+    "module": "./dist/svorn.module.js",
+    "unpkg": "./dist/svorn.umd.js",
+    "types": "./dist/svorn.d.ts"
+  },
+  "scripts": {
+    "gen": "pnpm run gen:parserTypes",
+    "gen:parserTypes": "node --loader ts-node/esm --es-module-specifier-resolution=node tools/generateParserTypes",
+    "test": "jest --maxWorkers=25%",
+    "test:watch": "jest --watch --maxWorkers=25%",
+    "build": "microbundle"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.4.1",
+    "jest": "^27.5.1",
+    "microbundle": "^0.14.2",
+    "ts-jest": "^27.1.3",
+    "ts-node": "^10.7.0",
+    "typescript": "^4.6.2"
+  },
+  "dependencies": {
+    "chevrotain": "^10.1.2"
+  }
+}

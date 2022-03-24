@@ -1,7 +1,5 @@
 import { type CstNode, type IToken, tokenMatcher } from 'chevrotain'
 
-import { IS_DEV_ENV } from '#lib/utils'
-
 import type {
   AtomicExpressionCstChildren,
   FinanceNumberCstChildren,
@@ -23,6 +21,7 @@ import {
   resolveBoolean,
   resolveNumberLiteral,
 } from './resolveUtils'
+import { IS_DEV_ENV } from './utils'
 import {
   type CellValue,
   type CellValues,

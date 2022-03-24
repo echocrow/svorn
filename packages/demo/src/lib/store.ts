@@ -1,14 +1,15 @@
+import {
+  type CellValue,
+  type CellValues,
+  type ParseResult,
+  CircularDepErr,
+  parse,
+  resolve,
+} from 'funcular'
 import { combineLatest, Observable, of, switchMap } from 'rxjs'
 import { derived, derivedFamily, writable, writableFamily } from 'svorn'
 
 import { type CellCoord, nameCell, parseCellName } from './cells'
-import parse, { type ParseResult } from './formula/parse'
-import resolve from './formula/resolve'
-import {
-  type CellValue,
-  type CellValues,
-  CircularDepErr,
-} from './formula/values'
 import { clamp } from './utils'
 
 export const cells = writableFamily('')

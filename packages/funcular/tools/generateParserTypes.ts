@@ -2,7 +2,7 @@ import { generateCstDts } from 'chevrotain'
 import { writeFileSync } from 'fs'
 import { basename, resolve } from 'path'
 
-import { productions } from '#lib/formula/parse'
+import { productions } from '../src/parse'
 
 const filename = basename(import.meta.url)
 
@@ -11,5 +11,5 @@ const PREFIX_COMMENT = `
 `.trimStart()
 
 const dtsString = PREFIX_COMMENT + generateCstDts(productions)
-const dtsPath = resolve('src/lib/formula', 'cst.gen.d.ts')
+const dtsPath = resolve('src', 'cst.gen.d.ts')
 writeFileSync(dtsPath, dtsString)

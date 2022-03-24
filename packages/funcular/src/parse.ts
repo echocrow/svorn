@@ -10,7 +10,7 @@ import {
   Lexer,
 } from 'chevrotain'
 
-import { IS_DEV_ENV } from '#lib/utils'
+import { IS_DEV_ENV } from './utils'
 
 const EnterFormula = createToken({
   name: 'EnterFormula',
