@@ -37,5 +37,5 @@
   on:click|preventDefault={onClick}
   class="block w-full leading-none p-2"
 >
-  {$val}
+  {$val ?? ''}
 </button>

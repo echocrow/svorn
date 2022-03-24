@@ -51,11 +51,11 @@ class Interpreter extends parser.getBaseCstVisitorConstructor() {
   }
 
   protected plain(ctx: PlainCstChildren): CellValue {
-    return this.visit(ctx.text)
+    return this.visit(ctx.text) ?? ''
   }
 
   protected text(ctx: TextCstChildren): CellValue {
-    return (ctx.PlainText ?? []).map((t) => t.image).join('')
+    return ctx.PlainText ? ctx.PlainText.map((t) => t.image).join('') : null
   }
 
   protected magicText(ctx: MagicTextCstChildren): CellValue {

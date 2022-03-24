@@ -33,7 +33,7 @@ describe('parse', () => {
 
 describe('parse & resolve', () => {
   it('resolves empty text', () => {
-    expectParseResolve('').toBe('')
+    expectParseResolve('').toBe(null)
   })
 
   describe('plain text', () => {
